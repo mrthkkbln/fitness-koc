@@ -49,6 +49,10 @@ nav a{flex:1;text-align:center;font-size:12px;font-weight:500;color:var(--tx3);p
 .ph{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:var(--bd)}
 svg text{fill:var(--tx3);font-size:11px}
 .hide{display:none}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+input[type=range]{min-height:34px;padding:0;border:0;background:transparent;accent-color:var(--ac)}
+button:disabled{opacity:.45}
+details summary{list-style:revert}
 </style>
 </head>
 <body>
@@ -56,7 +60,7 @@ svg text{fill:var(--tx3);font-size:11px}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.10';
+const APP_V='1.11';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -143,14 +147,14 @@ const UL=['Alt vücut A','Üst vücut A','Alt vücut B','Üst vücut B'],FB=['T�
 const PHASES=[{n:'Giriş',rpe:'7',d:-1,txt:'Tekniği otur, ağırlıkları test et. Setleri 3 tekrar yedekte bitir.'},{n:'Birikim',rpe:'8',d:0,txt:'Hedef tekrarları tuttur, 2 tekrar yedekte bitir.'},{n:'Birikim+',rpe:'8',d:0,p:1,txt:'Öncelikli bölgelere +1 set. Tekrar ve kilo artır.'},{n:'Zirve',rpe:'9',d:0,txt:'En zorlu hafta: setleri 1 tekrar yedekte bitir.'},{n:'Toparlanma (deload)',rpe:'6',dl:1,txt:'Setler yarıya, ağırlık %10 hafif. Vücut toparlanır, sonraki blokta daha güçlü dönersin.'}];
 
 /* ---------- durum ---------- */
-const defWiz=()=>({goal:'Yağ yakımı + kas',cnt:4,td:[0,2,4,5],wk:'17:00',we:'Serbest',no:['Ağırlık|Pilates'],age:'',h:'',kg:'',fat:'',exp:'1–3 yıl',inj:[],injNote:'',eq:'Tam donanımlı salon',prio:[],sure:60,bel:'',gogus:'',kol:'',kalca:'',lifts:{bench:'',squat:'',deadlift:'',ohp:''},
+const defWiz=()=>({sex:'Erkek',goalLock:0,goal:'Yağ yakımı + kas',cnt:4,td:[0,2,4,5],wk:'17:00',we:'Serbest',no:['Ağırlık|Pilates'],age:'',h:'',kg:'',fat:'',exp:'1–3 yıl',inj:[],injNote:'',eq:'Tam donanımlı salon',prio:[],sure:60,bel:'',gogus:'',kol:'',kalca:'',lifts:{bench:'',squat:'',deadlift:'',ohp:''},
  custom:[],act:Object.fromEntries(BASE.map(a=>[a,{on:a==='Ağırlık'||a==='Yürüyüş'?1:0,n:a==='Ağırlık'?3:a==='Yürüyüş'?7:1,d:[...ALL]}]))});
 function syncActs(){const w=S.wiz;w.custom=w.custom||[];AL=[...BASE,...w.custom.filter(c=>!BASE.includes(c))];AL.forEach(a=>{if(!w.act[a])w.act[a]={on:0,n:1,d:[...ALL]}})}
 let S;
 try{S=JSON.parse(localStorage.getItem('fk')||'null')}catch(e){S=null}
 if(!S)S={v:1,profile:null,wiz:defWiz(),plan:null,prog:{},logs:[],checkins:[],body:[],health:[],photos:[],cfg:{url:'',token:''},queue:[],draft:{},msg:null};
 ['logs','checkins','body','health','photos','queue'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
-S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};syncActs();
+S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote','sex'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};S.scans=S.scans||[];S.rev=S.rev||{};S.mrg=S.mrg||{};S.light=S.light||{};S.ovr=S.ovr||{};delete S.makeup;syncActs();
 let route=S.profile?'today':'wiz',wst=0,err='',ui={};
 const save=()=>{try{localStorage.setItem('fk',JSON.stringify(S))}catch(e){toast('Telefon hafızası dolu: Ayarlar > dışa aktar')}};
 
@@ -214,7 +218,7 @@ async function readJson(r){const t=await r.text();try{return JSON.parse(t)}catch
  throw new Error('Sunucu JSON yerine sayfa döndürdü (HTTP '+r.status+'). URL\'nin /exec ile bittiğinden ve erişimin "Herkes" olduğundan emin ol.')}}
 async function api(body){const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:S.cfg.token})});return readJson(r)}
 function q(sheet,rows){if(rows.length){S.queue.push({action:'append',sheet,rows});save();flush()}}
-function stateJson(){return JSON.stringify({profile:S.profile,wiz:S.wiz,plan:S.plan,prog:S.prog})}
+function stateJson(){return JSON.stringify({profile:S.profile,wiz:S.wiz,plan:S.plan,prog:S.prog,shape:S.shape,rev:S.rev,mrg:S.mrg,light:S.light,ovr:S.ovr})}
 async function flush(){if(syncing||urlProblem()||!navigator.onLine)return;syncing=true;
  try{while(S.queue.length){const j=await api(S.queue[0]);if(!j.ok)throw new Error(j.error||'hata');S.queue.shift();save()}
   await api({action:'state',json:stateJson()})}catch(e){console.warn(e)}finally{syncing=false;updNav()}}
@@ -246,28 +250,47 @@ function scheme(id,role){const g=S.wiz.goal,e=EX[id];
  if(g==='Yağ yakımı'||g==='Kondisyon')return role==='c'?[10,15,'tekrar']:[12,20,'tekrar'];if(g==='Yağ yakımı + kas')return role==='c'?[8,12,'tekrar']:[12,15,'tekrar'];
  return role==='c'?[8,12,'tekrar']:[10,15,'tekrar']}
 function finisher(){return {'Yağ yakımı':[15,20],'Yağ yakımı + kas':[10,15],'Kondisyon':[10,15]}[S.wiz.goal]||[5,10]}
-function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[];
+function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[],rv=date&&S.rev[date],mg=date&&S.mrg[date]&&S.mrg[date].to===label?S.mrg[date].add:null;let bump=0;
  const prioPats=w.prio.flatMap(p=>PRIO[p]||[]);
  let slots=(TPLS[label]||[]).map(s=>[...s]);
  if(label==='Serbest')slots=(S.free[date||iso()]||[]).map(id=>[EX[id].pat,0,['squat','hinge','lunge','hpush','vpush','hpull','vpull'].includes(EX[id].pat)?'c':'i',id]);
  if(TPLS[label]&&label!=='Core'){const upper=label.startsWith('Üst'),full=label.startsWith('Tüm');
   prioPats.forEach(pt=>{const fits=full||pt==='core'||(upper?UPPER.includes(pt):!UPPER.includes(pt));if(fits&&!slots.some(s=>s[0]===pt))slots.push([pt,0,'i'])})}
- slots.forEach((s,i)=>{const key=label+'|'+i;let id=s[3]||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
+ slots.forEach((s,i)=>{s[4]=label+'|'+i});
+ if(mg&&TPLS[mg]&&TPLS[label]&&label!=='Core'){const have=slots.map(s=>s[0]),add=TPLS[mg].filter(s=>s[2]==='c'&&!have.includes(s[0])).slice(0,2);
+  if(add.length){const at=slots.filter(s=>s[2]==='c').length;slots.splice(at,0,...add.map((s,j)=>[s[0],s[1],'c',undefined,'mk|'+mg+'|'+j,1]))}else bump=1}
+ slots.forEach((s,i)=>{const key=s[4];let id=s[3]||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
   const role=s[2],[lo,hi,u]=scheme(id,role);let sets=role==='c'?3:(w.goal==='Kondisyon'?2:3);
-  if(w.exp==='Yeni')sets--;if(w.exp==='3+ yıl'&&role==='c')sets++;sets+=P.ph.d||0;const pr=prioPats.includes(s[0]);if(pr)sets++;if(pr&&P.ph.p)sets++;
+  if(w.exp==='Yeni')sets--;if(w.exp==='3+ yıl'&&role==='c')sets++;sets+=P.ph.d||0;const pr=prioPats.includes(s[0]);if(pr)sets++;if(pr&&P.ph.p)sets++;if(bump&&role==='c')sets++;if(rv&&(rv.type==='light'||(rv.legL&&LEGP.includes(s[0]))))sets--;
   sets=Math.max(2,Math.min(5,sets));if(P.ph.dl)sets=2;
-  items.push({id,slot:i,key,pat:s[0],role,sets,lo,hi,u,pr,caution:injHit(id),rest:role==='c'?(w.goal==='Yağ yakımı'?'90 sn–2 dk':'2–3 dk'):(w.goal==='Yağ yakımı'?'45–60 sn':'60–90 sn')})});
+  items.push({id,slot:i,key,pat:s[0],role,sets,lo,hi,u,pr,caution:injHit(id),mk:!!s[5],rest:role==='c'?(w.goal==='Yağ yakımı'?'90 sn–2 dk':'2–3 dk'):(w.goal==='Yağ yakımı'?'45–60 sn':'60–90 sn')})});
  const lim=(num(w.sure)||60)+(dIdx(date?new Date(date+'T12:00:00'):new Date())>4?15:0);
  const est=()=>10+finisher()[0]+items.reduce((a,x)=>a+x.sets*(x.role==='c'?3.5:2.2),0);
  while(label!=='Serbest'&&est()>lim&&items.length>4){let j=-1;for(let k=items.length-1;k>=0;k--)if(items[k].role==='i'&&!items[k].pr){j=k;break}if(j<0)break;items.splice(j,1)}
+ if(mg){let g=0;while(est()>lim&&g++<40){let j=-1,mx=2;items.forEach((x,q)=>{const v=x.sets+(x.mk?.5:0);if(!x.pr&&x.sets>2&&v>mx){mx=v;j=q}});if(j<0)break;items[j].sets--}
+  while(est()>lim&&items.length>4){let j=-1;for(let q=items.length-1;q>=0;q--)if(!items[q].mk&&!items[q].pr){j=q;break}if(j<0)break;items.splice(j,1)}}
  return items}
 function breakDays(){const d=S.logs.map(l=>l.date).sort().pop();return d?daysBetween(d,iso()):0}
-function target(ex){const p=S.prog[ex];if(!p)return null;return phase().ph.dl||breakDays()>=10?rnd(p.w*.9,EX[ex].r):p.w}
+function target(ex){const p=S.prog[ex];if(!p)return null;return phase().ph.dl||breakDays()>=10||S.light[ui.openD||iso()]?rnd(p.w*.9,EX[ex].r):p.w}
 function planFor(d){const di=dIdx(new Date(d+'T12:00:00'));let pl=[...((S.plan&&S.plan[di])||[])];const o=S.ovr&&S.ovr[d];if(o){const i=pl.findIndex(x=>x.startsWith('Ağırlık'));if(i>=0)pl[i]='Ağırlık · '+o;else pl.unshift('Ağırlık · '+o)}return pl}
-function missedDays(){const t=iso(),st=S.profile&&S.profile.start||t,out=[];for(let k=1;k<=3;k++){const d=addDays(t,-k);if(d<st)break;const ci=S.checkins.filter(c=>c.date===d).map(c=>c.act);planFor(d).filter(p=>!ci.includes(p)).forEach(p=>out.push({d,p}))}return out}
-function nextWeightsDay(){const t=iso();for(let k=1;k<=7;k++){const d=addDays(t,k);if(planFor(d).some(x=>x.startsWith('Ağırlık')))return d}return null}
-function shiftChain(label,from){S.ovr=S.ovr||{};let carry=label;for(let k=1;k<=7&&carry;k++){const d=addDays(from,k),pl=planFor(d),w=pl.find(x=>x.startsWith('Ağırlık'));if(w){const cur=w.split(' · ')[1];S.ovr[d]=carry;carry=cur}}}
-function conflictToday(){const pl=planFor(iso());return S.wiz.no.some(n=>{const [a,b]=n.split('|');return (a==='Ağırlık'&&pl.includes(b))||(b==='Ağırlık'&&pl.includes(a))})}
+const WREASON=['Yorgunluk','İş','Zaman yok','Hastalık','Sakatlık/ağrı','Diğer'],LEGP=['squat','hinge','lunge'];
+const isW=p=>p.startsWith('Ağırlık'),labOf=p=>p.split(' · ')[1],hasCI=(d,p)=>S.checkins.some(c=>c.date===d&&c.act===p);
+function yMiss(){const t=iso(),y=addDays(t,-1),st=S.profile&&S.profile.start||t;if(y<st)return null;const p=planFor(y).find(isW);return p&&!hasCI(y,p)?{d:y,p}:null}
+function missedDays(){const t=iso(),st=S.profile&&S.profile.start||t,ym=yMiss(),out=[];for(let k=1;k<=3;k++){const d=addDays(t,-k);if(d<st)break;planFor(d).filter(p=>!hasCI(d,p)&&!(ym&&ym.d===d&&ym.p===p)).forEach(p=>out.push({d,p}))}return out}
+function dayBlocked(d){const pl=planFor(d),w=S.wiz,di=dIdx(new Date(d+'T12:00:00'));if(!w.td.includes(di))return true;
+ if(w.no.some(n=>{const [a,b]=n.split('|');return (a==='Ağırlık'&&pl.includes(b))||(b==='Ağırlık'&&pl.includes(a))}))return true;
+ return di<5&&!pl.some(isW)&&pl.some(a=>a!=='Yürüyüş')}
+function revise(label,from,reason){const sick=reason==='Hastalık'||reason==='Sakatlık/ağrı';let d0=addDays(from,1);if(d0<iso())d0=iso();
+ if(sick){const d=[0,1,2].map(k=>addDays(d0,k)).find(x=>planFor(x).some(isW)&&!S.rev[x]);if(!d)return null;S.light[d]=1;S.rev[d]={type:'light',missed:label,cur:labOf(planFor(d).find(isW)),from,reason};return S.rev[d]}
+ let d=null;for(let k=0;k<3;k++){const x=addDays(d0,k);if(!dayBlocked(x)&&!S.rev[x]){d=x;break}}if(!d)return null;
+ const pw=planFor(d).find(isW),hard=x=>planFor(x).some(a=>HARD.includes(a)),lower=l=>/^Alt|^Tüm/.test(l),hz=hard(d)||hard(addDays(d,1));
+ if(!pw){S.rev[d]={type:'move',missed:label,from,reason,prev:S.ovr[d]||null,legL:lower(label)&&hz};S.ovr[d]=label}
+ else{const cur=labOf(pw);S.mrg[d]={add:label,to:cur};S.rev[d]={type:'merge',missed:label,cur,from,reason,legL:(lower(label)||lower(cur))&&hz}}
+ return S.rev[d]}
+function undoRev(d){const r=S.rev[d];if(!r)return;if(r.type==='move'){if(r.prev)S.ovr[d]=r.prev;else delete S.ovr[d]}delete S.mrg[d];delete S.light[d];delete S.rev[d]}
+function revCard(d,r,t){const dn=d===t?'Bugün':DL[dIdx(new Date(d+'T12:00:00'))],fr=daysBetween(r.from,t)===1?'Dün':r.from===t?'Bugün':DL[dIdx(new Date(r.from+'T12:00:00'))];
+ const tx=r.type==='move'?`${dn}: ${esc(r.missed)} yapılacak (o gün ağırlık yoktu, kaçanı buraya aldım).`:r.type==='merge'?(r.cur===r.missed?`${dn}: ${esc(r.cur)} zaten aynı antrenman; ana hareketlere +1 set eklendi.`:`${dn}: ${esc(r.cur)} + ${esc(r.missed)} antrenmanının ana hareketleri. Süre aşılmasın diye yardımcı hareketler kısaltıldı.`):`${dn}: ${esc(r.cur)} hafifletildi (set −1, ağırlık −%10). Ağrı ya da hastalık sürüyorsa zorlama.`;
+ return `<div class="card" style="border:2px solid var(--ac)"><h3>🔁 Plan güncellendi</h3><div class="sm">${fr} ${esc(r.missed)} kaçtı → ${tx}${r.legL?' Yakında zorlu spor var: bacak hacmi azaltıldı.':''}</div><div class="row" style="margin-top:10px"><button class="f1 sm" data-a="undoRev" data-v="${d}">Değişikliği geri al</button>${r.from<t?`<button class="f1 sm" data-a="didY" data-v="${d}">Aslında yapmıştım</button>`:''}</div></div>`}
 function tReps(it){const p=S.prog[it.id];let r=p&&p.r!=null?p.r:it.lo;return Math.max(it.lo,Math.min(it.hi,r))}
 function progress(items,sets,rpe){const out=[],dl=phase().ph.dl;
  for(const it of items){const ex=it.id,e=EX[ex],step=e.t?5:1;const ss=(sets[ex]||[]).filter(s=>s&&num(s.r)!=null&&(e.bw||num(s.kg)!=null));if(!ss.length)continue;
@@ -290,14 +313,151 @@ function bodySeries(field){const out=[];
  const hf=field==='kg'?'kilo':field==='fat'?'yag_orani':null;
  if(hf)S.health.forEach(x=>{const d=String(x.tarih||'').slice(0,10),v=num(x[hf]);if(d&&v!=null&&v>0)out.push([d,v,Date.parse(x.zaman)||Date.parse(d+'T12:00:00')])});
  return out.sort((a,b)=>a[2]-b[2])}
-function lastPhotoDate(){const ds=[...S.photos.map(p=>p.date),...(S.photosRemote||[]).map(p=>String(p.tarih).slice(0,10))].sort();return ds[ds.length-1]||null}
+function lastPhotoDate(){const ds=[...S.photos.map(p=>p.date),...(S.scans||[]).map(x=>x.date),...(S.photosRemote||[]).map(p=>String(p.tarih).slice(0,10))].sort();return ds[ds.length-1]||null}
 function healthToday(){const t=todayISO();const hs=S.health.filter(h=>String(h.tarih).slice(0,10)===t);return hs[hs.length-1]||null}
+
+/* ---------- vücut şekillendirici ---------- */
+const SHK=[['omuz','Omuz','Dar','Geniş'],['gogus','Göğüs','Düz','Dolgun'],['kol','Kollar','İnce','Kalın'],['bel','Bel','İnce','Geniş'],['gobek','Göbek','Düz','Belirgin'],['kalca','Kalça','Dar','Geniş'],['bacak','Bacaklar','İnce','Kalın']];
+const SH0=()=>Object.fromEntries(SHK.map(k=>[k[0],50]));
+const SHP={now:{'İnce':{omuz:40,gogus:35,kol:35,bel:30,gobek:20,kalca:40,bacak:35},'Ortalama':{},'Göbekli':{omuz:50,gogus:55,kol:45,bel:70,gobek:82,kalca:55,bacak:50},'Kilolu':{omuz:55,gogus:65,kol:60,bel:80,gobek:85,kalca:75,bacak:70},'Armut':{omuz:42,gogus:45,kol:45,bel:45,gobek:35,kalca:74,bacak:66},'Kaslı':{omuz:72,gogus:70,kol:72,bel:40,gobek:28,kalca:55,bacak:68}},
+ goal:{'Daha fit':{bel:-20,gobek:-25,kalca:-8},'Atletik':{omuz:10,gogus:8,kol:8,bel:-18,gobek:-25,bacak:5},'Kaslı / V şekli':{omuz:22,gogus:15,kol:18,bel:-12,gobek:-20,bacak:10},'Sıkı ve kalçalı':{bel:-15,gobek:-20,kalca:12,bacak:6,kol:3}}};
+const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
+const shAdd=(b,d)=>{const g={...b};for(const k in d)g[k]=clamp(g[k]+d[k]);return g};
+function shapeS(){if(!S.shape)S.shape={now:SH0(),goal:shAdd(SH0(),SHP.goal['Daha fit']),view:'front',ed:'now',src:'',goalSet:0};return S.shape}
+function autoGoal(){const s=shapeS();if(!s.goalSet)s.goal=shAdd(s.now,s.now.bel>40||s.now.gobek>40?SHP.goal['Daha fit']:SHP.goal['Atletik'])}
+function crPath(p,close){let d=`M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;const n=p.length,P=close?(i=>p[(i+n)%n]):(i=>p[Math.max(0,Math.min(n-1,i))]);
+ for(let i=0;i<(close?n:n-1);i++){const p0=P(i-1),p1=P(i),p2=P(i+1),p3=P(i+2);
+  d+=`C${(p1[0]+(p2[0]-p0[0])/6).toFixed(1)},${(p1[1]+(p2[1]-p0[1])/6).toFixed(1)} ${(p2[0]-(p3[0]-p1[0])/6).toFixed(1)},${(p2[1]-(p3[1]-p1[1])/6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`}
+ return d+(close?'Z':'')}
+const mir=ps=>ps.map(q=>[200-q[0],q[1]]);
+function bodyFront(p,K){const F=k=>(p[k]-50)/50,P=x=>Math.max(0,x);
+ const nk=K?7:8.5,sh=(K?40:47)+9*F('omuz'),ap=(K?32:37)+5*F('gogus')+3*F('omuz'),cs=(K?34:37)+5*F('gogus')+(K?3*P(F('gogus')):0),ub=(K?28:34)+3*F('gogus')+3*F('bel')+2*P(F('gobek')),
+  wa=(K?26:32)+7*F('bel')+4*P(F('gobek')),be=(K?30:33)+5*F('bel')+5*P(F('gobek')),hp=(K?38:34.5)+8*F('kalca')+2*F('bel'),hc=hp-1+2*F('bacak'),
+  tw=(K?17:16.5)+4*F('bacak')+1.5*F('kalca'),lc=hc-tw,tw2=tw*.82,kw=9.5+1.2*F('bacak'),cw=10+2*F('bacak'),aw=5.5;
+ const R=[[100+nk,60],[100+nk,74],[100+sh*.8,80],[100+sh,90],[100+ap,110],[100+cs,128],[100+ub,150],[100+wa,176],[100+be,198],[100+hp,222],[100+hc,245],[100+lc+tw2,285],[100+lc+kw,326],[100+lc+cw,356],[100+lc+aw,398],[100+lc+aw+4,410],[100+lc+aw+2,416],[100+lc-aw-1,416],[100+lc-aw,400],[100+lc-cw*.75,358],[100+lc-kw*.9,326],[100+Math.max(1.5,lc-tw2),288],[100+Math.max(1,lc-tw)+1,256],[100,250]];
+ return R.concat(mir(R.slice(0,-1)).reverse())}
+function armPath(p,K,s,side){const F=k=>(p[k]-50)/50,sh=(K?40:47)+9*F('omuz'),ua=(K?7:8)+3*F('kol')+(K?0:1)*Math.max(0,F('kol')),fw=(K?5:6)+1.5*F('kol');
+ const [x0,y0,x1,y1]=side?[101,90,105,246]:[100+sh-6,88,100+sh+16,250],dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy),nx=dy/L,ny=-dx/L;
+ const W=[[0,ua*1.05],[.12,ua*1.1],[.3,ua],[.46,ua*.78],[.62,fw],[.85,fw*.7],[1,3.6],[1.06,4.6],[1.12,3.2]];
+ let pts=W.map(([t,w])=>[x0+dx*t+nx*w,y0+dy*t+ny*w]).concat(W.map(([t,w])=>[x0+dx*t-nx*w,y0+dy*t-ny*w]).reverse());if(s<0)pts=mir(pts);return crPath(pts,true)}
+function bodySide(p,K){const F=k=>(p[k]-50)/50,P=x=>Math.max(0,x);
+ const cd=(K?21:23)+5*F('gogus')+(K?5+4*P(F('gogus')):0),wf=15+6*F('bel')+11*P(F('gobek'))+2*F('gobek'),bf=(K?17:16)+5*F('bel')+15*P(F('gobek'))+3*F('gobek'),gl=(K?21:17)+7*F('kalca'),ub=(K?17:19)+3*F('omuz')+2*F('gogus'),th=13+3.5*F('bacak'),tb=12+3*F('bacak')+1.5*F('kalca'),cb=11+3*F('bacak');
+ return [[93,62],[106,64],[109,76],[113,86],[100+cd*.8,104],[100+cd,124],[100+cd-3,146],[100+wf,176],[100+bf,198],[100+Math.max(13,bf*.75),220],[112+1.5*F('bacak'),244],[102+th,276],[110,326],[109,346],[106,396],[124,410],[126,416],[91,416],[92,402],[94,392],[100-cb,354],[91,322],[100-tb,282],[102-gl,250],[100-gl,228],[100-(K?11:12),186],[102-ub,150],[100-ub,112],[85,88],[91,74]]}
+function silG(p,K,view,cls,det){const hair=K?(view==='side'?'<circle cx="84" cy="22" r="8"/>':'<circle cx="100" cy="12" r="8"/>'):'';
+ if(view==='side')return `<g class="${cls}">${hair}<ellipse cx="100" cy="38" rx="${K?17:18}" ry="${K?21:22}"/><path d="${crPath(bodySide(p,K),true)}"/><path d="${armPath(p,K,1,1)}"/></g>`;
+ const b=bodyFront(p,K),hw=(b[9][0]-100);let d='';
+ if(det)d=view==='back'?`<path class="dt" d="M100,82L100,214M100,226L100,250M${100-hw*.55},238Q${100-hw*.3},246 100,240Q${100+hw*.3},246 ${100+hw*.55},238M84,104Q78,122 86,136M116,104Q122,122 114,136"/>`:`<circle class="dt" cx="100" cy="194" r="1.6"/>${K?'':`<path class="dt" d="M80,130Q90,138 98,132M120,130Q110,138 102,132"/>`}`;
+ return `<g class="${cls}">${hair}<path d="${armPath(p,K,1)}"/><path d="${armPath(p,K,-1)}"/><ellipse cx="100" cy="36" rx="${K?16:17}" ry="${K?21:22}"/><path d="${crPath(b,true)}"/>${d}</g>`}
+function shSVG(){const s=shapeS(),K=S.wiz.sex==='Kadın',v=s.view;
+ return `<svg viewBox="0 0 200 430" style="width:100%;max-height:400px;display:block;margin:6px auto 0" role="img" aria-label="Vücut silüeti"><style>.sn path,.sn ellipse,.sn circle{fill:#d1d5db;stroke:#9ca3af;stroke-width:1.2}.sg path,.sg ellipse,.sg circle{fill:${s.ed==='goal'?'rgba(15,118,110,.10)':'none'};stroke:#0f766e;stroke-width:2.2;stroke-dasharray:5 4}.dt{fill:none!important;stroke:#9ca3af!important;stroke-width:1!important;stroke-dasharray:none!important}</style>${silG(s.now,K,v,'sn',1)}${silG(s.goal,K,v,'sg',0)}</svg><div class="xs" style="text-align:center"><span style="display:inline-block;width:12px;height:12px;background:#d1d5db;border:1px solid #9ca3af;vertical-align:-1px"></span> Şu an &nbsp; <span style="display:inline-block;width:16px;border-top:2.5px dashed #0f766e;vertical-align:3px"></span> Hedef</div>`}
+function shDerive(){const s=shapeS(),dl=k=>s.goal[k]-s.now[k],K=S.wiz.sex==='Kadın';
+ const F=Math.max(0,-dl('gobek'))*.6+Math.max(0,-dl('bel'))*.4+(K?Math.max(0,-dl('bacak'))*.2:0);
+ const M=['omuz','gogus','kol','bacak'].reduce((a,k)=>a+Math.max(0,dl(k)),0)+Math.max(0,dl('kalca'))*(K?1:.3);
+ const inc=[['Omuz',dl('omuz')],['Sırt',dl('omuz')*.8],['Göğüs',dl('gogus')],['Kollar',dl('kol')],['Bacak (ön)',dl('bacak')],['Kalça',dl('kalca')]].filter(e=>e[1]>=6).sort((a,b)=>b[1]-a[1]);
+ const prio=inc.map(e=>e[0]).slice(0,2),goal=F>=8&&M>=15?'Yağ yakımı + kas':F>=8?'Yağ yakımı':M>=15?'Kas kazanımı':'Yağ yakımı + kas';
+ const parts=[];if(F>=8)parts.push('bel ve göbek küçülüyor → yağ yakımı');if(M>=15)parts.push((prio.length?prio.join(', ').toLowerCase():'kaslar')+' büyüyor → kas kazanımı');if(!parts.length)parts.push('küçük değişiklik → sıkılaşma');
+ return {goal,prio,F,M,txt:parts.join(' · ')}}
+function shSum(){const dv=shDerive();return `<div class="tip"><b>Önerilen hedef:</b> ${dv.goal}${dv.prio.length?' · <b>Öncelik:</b> '+dv.prio.join(', '):''}<br><span class="xs">${dv.txt}</span></div>`}
+function shaperHTML(wiz){const s=shapeS();
+ return `<div style="margin-top:6px">${['Erkek','Kadın'].map(x=>ch(x,S.wiz.sex===x,'sex','',x)).join('')}<span style="display:inline-block;width:8px"></span>${[['front','Önden'],['side','Yandan'],['back','Arkadan']].map(([v,l])=>ch(l,s.view===v,'shv','',v)).join('')}</div>
+ <div id="shsvg">${shSVG()}</div>
+ <div class="row" style="gap:8px;margin-top:10px"><button class="f1 ${s.ed==='now'?'pr':''}" data-a="she" data-v="now">Şu anki vücudum</button><button class="f1 ${s.ed==='goal'?'pr':''}" data-a="she" data-v="goal">Hedefim</button></div>
+ <div class="xs" style="margin-top:8px">${s.ed==='now'?(s.src==='photo'?'Fotoğraf analizinden dolduruldu; gerekirse kaydırıcılarla düzelt.':'Sana en yakın tipi seç, sonra kaydırıcılarla ince ayar yap.'):'Ulaşmak istediğin görünümü seç ya da kaydırıcılarla çiz.'}</div>
+ <div style="margin-top:8px">${Object.keys(SHP[s.ed]).map(n=>ch(n,false,'shp',s.ed,n)).join('')}</div>
+ ${SHK.map(([k,l,a,b])=>`<div style="margin-top:6px"><div class="row sp sm"><b>${l}</b><span class="xs">${a} ↔ ${b}</span></div><input type="range" min="0" max="100" step="1" data-sh="${k}" value="${s[s.ed][k]}" aria-label="${l}"></div>`).join('')}
+ <div id="shsum">${shSum()}</div>
+ ${wiz?`<label class="l">Ana hedef (şekle göre seçildi, değiştirebilirsin)</label>${['Yağ yakımı','Kas kazanımı','Yağ yakımı + kas','Kondisyon'].map(g=>ch(g,S.wiz.goal===g,'goal','',g)).join('')}`:`<button class="pr full" style="margin-top:12px" data-a="shApply">Planımı bu hedefe göre kur</button>`}`}
+const lastKg=()=>{const s=bodySeries('kg');return s.length?s[s.length-1][1]:num(S.wiz.kg)};
+function lastFat(){const c=[],sc=S.scans[S.scans.length-1],s=bodySeries('fat');if(sc)c.push([sc.ts||0,sc.bf]);if(s.length)c.push([s[s.length-1][2],s[s.length-1][1]]);return c.length?c.sort((a,b)=>b[0]-a[0])[0][1]:num(S.wiz.fat)}
+function roadmap(){const s=shapeS(),K=S.wiz.sex==='Kadın',kg=lastKg();if(!kg)return null;
+ const map=v=>(K?17:9)+v*.2,fN=(s.now.bel+s.now.gobek)/2,fG=(s.goal.bel+s.goal.gobek)/2,known=lastFat();
+ const bfN=known!=null?known:map(fN),off=bfN-map(fN),minB=K?18:10;let bfG=Math.min(bfN,map(fG)+off),cap=false;if(bfG<minB){bfG=Math.min(bfN,minB);cap=map(fG)+off<minB}
+ const lean=kg*(1-bfN/100),kgG=lean/(1-bfG/100),loss=Math.max(0,kg-kgG);
+ const dl=k=>Math.max(0,s.goal[k]-s.now[k]),gain=(dl('omuz')+dl('gogus')+dl('kol')+dl('bacak')+dl('kalca')*(K?1:.3))*.04;
+ const rate={'Yeni':.9,'<1 yıl':.7,'1–3 yıl':.4,'3+ yıl':.25}[S.wiz.exp]||.4;
+ const wF=loss>=.5?Math.ceil(loss/(kg*.0075)):0;let wM=gain>=.3?Math.ceil(gain/(rate/4.33)):0;if(wF&&wM)wM=Math.max(0,Math.round(wM-wF*(rate>=.7?.5:.25)));
+ const ph=[];if(wF)ph.push({n:'Yağ yakımı, kası koruyarak',w:wF,t:`Haftada ~%0,5–1 kilo kaybı (≈${fmt(kg*.0075)} kg). Hedef ≈${fmt(kgG)} kg, yağ oranı ≈%${fmt(bfG)}. Ağırlık antrenmanı kası korur.`});
+ if(wM)ph.push({n:'Kas yapma',w:wM,t:`Ayda ~${fmt(rate)} kg kas (deneyimine göre). Kilo yavaş artabilir; bel ölçüsü sabit kalmalı.`});
+ if(!ph.length)ph.push({n:'Sıkılaşma',w:12,t:'Kilo aşağı yukarı sabit; yağ azalırken kas artar. Bel ölçüsü ve kaldırdığın ağırlıklar ilerlemeyi gösterir.'});
+ const tot=ph.reduce((a,x)=>a+x.w,0),ms=[];for(let w=4;w<=Math.min(wF,32);w+=4)ms.push([w+'. hafta','≈'+fmt(Math.max(kgG,kg-kg*.0075*w))+' kg']);
+ const note=cap?`Hedef silüet sağlıklı alt sınırın altına iniyor; yol haritası %${minB} yağ oranında duruyor. Bunun altı uzun vadede sağlıklı değil.`:tot>52?'Uzun soluklu bir hedef. Önce ilk 12 haftaya odaklan; her kontrolde hedefi birlikte güncelleriz.':'';
+ return {months:Math.max(1,Math.round(tot/4.33)),ph,ms,note,bfN,known:known!=null}}
+function roadCard(){const r=roadmap();if(!r)return `<div class="card"><h2>🗺️ Yol haritası</h2><div class="mut">Yol haritası için önce kilonu gir (İlerleme → Ölçüm ekle).</div></div>`;
+ return `<div class="card"><h2>🗺️ Yol haritası</h2><div style="font-size:24px;font-weight:700">~${r.months} ay</div><div class="xs">Şu anki yağ oranı ${r.known?'':'tahmini '}≈%${fmt(r.bfN)}. Süreler tahmini; gerçek hız uyuma, uykuya ve beslenmeye bağlı.</div>${r.ph.map((x,i)=>`<div class="ex"><div style="font-weight:700">${i+1}. ${x.n} <span class="badge">${x.w} hafta</span></div><div class="sm mut">${x.t}</div></div>`).join('')}${r.ms.length?`<div class="hr"></div><div class="sm" style="font-weight:600">Kontrol noktaları</div>${r.ms.map(m=>`<div class="row sp sm" style="padding:4px 0"><span>${m[0]}</span><span>${m[1]}</span></div>`).join('')}`:''}${r.note?`<div class="tip">${r.note}</div>`:''}<div class="xs" style="margin-top:8px">Her 2 haftada bir fotoğraf analizi ve tartı; ilerleme yavaşsa plan ayarlanır.</div></div>`}
+
+/* ---------- fotoğraftan vücut analizi ---------- */
+const MPB='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',MPM='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task';
+const SCV=[['Ön','Önden','zorunlu'],['Yan','Yandan','önerilir'],['Arka','Arkadan','isteğe bağlı']];
+let mpPose=null,scanBuf={},scanRes=null;
+const scMsg=t=>{const e=document.getElementById('scmsg');if(e)e.textContent=t};
+async function getPose(){if(mpPose)return mpPose;scMsg('Analiz motoru yükleniyor… (ilk sefer ~10 MB, sonra hızlı)');
+ const m=await import(MPB+'/vision_bundle.mjs'),fs=await m.FilesetResolver.forVisionTasks(MPB+'/wasm');
+ const o=d=>({baseOptions:{modelAssetPath:MPM,delegate:d},runningMode:'IMAGE',numPoses:1,outputSegmentationMasks:true});
+ try{mpPose=await m.PoseLandmarker.createFromOptions(fs,o('GPU'))}catch(e){mpPose=await m.PoseLandmarker.createFromOptions(fs,o('CPU'))}return mpPose}
+function loadCv(file,max){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c)};img.onerror=()=>rej(new Error('Fotoğraf açılamadı.'));img.src=u})}
+async function detectImg(file){const cv=await loadCv(file,1024),pose=await getPose();scMsg('Analiz ediliyor…');const r=pose.detect(cv);
+ try{if(!r.landmarks||!r.landmarks.length||!r.segmentationMasks||!r.segmentationMasks.length)throw new Error('Fotoğrafta kişi bulunamadı. Baştan ayağa, iyi ışıkta tekrar çek.');
+  const mk=r.segmentationMasks[0],W=mk.width,H=mk.height,f=mk.getAsFloat32Array(),m=new Uint8Array(W*H);for(let i=0;i<f.length;i++)m[i]=f[i]>.5?1:0;
+  return {W,H,m,lm:r.landmarks[0].map(p=>({x:p.x,y:p.y,visibility:p.visibility}))}}
+ finally{(r.segmentationMasks||[]).forEach(x=>x&&x.close&&x.close())}}
+function ext(b){const {W,H,m}=b;let top=-1,bot=-1,l=W,r=-1;for(let y=0;y<H;y++){const o=y*W;let c=0;for(let x=0;x<W;x++)if(m[o+x]){c++;if(x<l)l=x;if(x>r)r=x}if(c>1){if(top<0)top=y;bot=y}}return {top,bot,l,r}}
+function runAt(m,W,H,y,cx){y=Math.round(y);if(y<0||y>=H)return null;const o=y*W;let x=Math.max(0,Math.min(W-1,Math.round(cx)));
+ if(!m[o+x]){let f=-1;for(let d=1;d<W*.15;d++){if(x+d<W&&m[o+x+d]){f=x+d;break}if(x-d>=0&&m[o+x-d]){f=x-d;break}}if(f<0)return null;x=f}
+ let a=x,b=x;while(a>0&&m[o+a-1])a--;while(b<W-1&&m[o+b+1])b++;return [a,b]}
+function geo(b){const {W,H,lm}=b,P=i=>({x:lm[i].x*W,y:lm[i].y*H,v:lm[i].visibility==null?1:lm[i].visibility}),sh={x:(P(11).x+P(12).x)/2,y:(P(11).y+P(12).y)/2},hp={x:(P(23).x+P(24).x)/2,y:(P(23).y+P(24).y)/2},T=hp.y-sh.y;
+ return {P,sh,hp,T,cx:y=>sh.x+(hp.x-sh.x)*(y-sh.y)/(T||1)}}
+function vcheck(b,view){const {W,H,m}=b,e=ext(b),{P,T,cx}=geo(b);
+ if(e.top<0)return {err:'Kişi bulunamadı.'};if(e.top<3||e.bot>H-4)return {err:'Baştan ayağa tamamı kadraja girsin (üstte ve altta biraz boşluk bırak).'};
+ if(Math.min(P(27).v,P(28).v)<.3)return {err:'Ayak bilekleri görünmüyor; telefonu biraz uzaklaştır.'};if(T<=0)return {err:'Duruş algılanamadı; dik dur.'};
+ const dx=Math.abs(P(11).x-P(12).x)/T;
+ if(view!=='Yan'&&dx<.45)return {err:'Bu yandan çekilmiş gibi görünüyor; '+(view==='Ön'?'yüzün':'sırtın')+' kameraya dönük olsun.'};
+ if(view==='Yan'&&dx>.4)return {err:'Bu önden çekilmiş gibi görünüyor; yan dön.'};
+ if(view!=='Yan')for(const i of [15,16]){const p=P(i),r=runAt(m,W,H,p.y,cx(p.y));if(r&&p.x>=r[0]-3&&p.x<=r[1]+3)return {err:'Kolların gövdene değiyor; kollarını gövdeden biraz aç (A pozu).'}}
+ return {warn:view==='Ön'&&P(0).v<.3?'Yüzün görünmüyor; arkadan çekilmiş olabilir.':''}}
+function dims(b,hcm,sex,side){const {W,H,m}=b,e=ext(b),{P,sh,hp,T,cx}=geo(b),k=hcm/(e.bot-e.top+1),mo=(P(9).y+P(10).y)/2,K=sex==='Kadın';
+ const wAt=y=>{const r=runAt(m,W,H,y,cx(y));return r?r[1]-r[0]+1:0};
+ const scan=(a,z,fn)=>{let best=0;for(let y=Math.round(a);y<=Math.round(z);y++){const w=wAt(y);if(w>0&&(!best||fn(w,best)))best=w}return best*k};
+ const mn=(a,z)=>scan(a,z,(w,q)=>w<q),mx=(a,z)=>scan(a,z,(w,q)=>w>q),avg=(a,z)=>{let s=0,n=0;for(let y=Math.round(a);y<=Math.round(z);y++){const w=wAt(y);if(w){s+=w;n++}}return n?s/n*k:0};
+ const o={neck:mn(mo+(sh.y-mo)*.35,sh.y-(sh.y-mo)*.1),waist:K?mn(sh.y+.5*T,sh.y+.8*T):avg(sh.y+.75*T,sh.y+.85*T),hip:mx(hp.y-.05*T,hp.y+.3*T),chest:avg(sh.y+.18*T,sh.y+.26*T)};
+ if(!side){o.shoulder=mx(sh.y-.03*T,sh.y+.1*T);
+  const ty=hp.y+(P(25).y-hp.y)*.25,tr=runAt(m,W,H,ty,P(23).x);let tw=tr?tr[1]-tr[0]+1:0;if(tw>(o.hip/k)*.6)tw/=2;o.thigh=tw*k;
+  const arm=(s,el)=>{const a=P(s),c=P(el),y=(a.y+c.y)/2,r=runAt(m,W,H,y,(a.x+c.x)/2);if(!r)return 0;const w=r[1]-r[0]+1;if(w>T*.5)return 0;return w*Math.abs(c.y-a.y)/(Math.hypot(c.x-a.x,c.y-a.y)||1)*k};
+  const as=[arm(11,13),arm(12,14)].filter(x=>x>0);o.arm=as.length?as.reduce((a,x)=>a+x,0)/as.length:0}
+ return o}
+const ell=(a,b)=>Math.PI*(3*(a+b)-Math.sqrt((3*a+b)*(a+3*b)));
+function navy(sex,h,neck,waist,hip){const L=Math.log10,i=x=>x/2.54;const bf=sex==='Kadın'?163.205*L(i(waist+hip-neck))-97.684*L(i(h))-78.387:86.010*L(i(Math.max(1,waist-neck)))-70.041*L(i(h))+36.76;return Math.max(3,Math.min(60,bf))}
+function toShape(r,sex){const K=sex==='Kadın',h=r.h,whtr=r.waist/h;
+ return {omuz:clamp(50+(r.shoulderW/h-(K?.235:.26))/.03*25),gogus:r.chestD?clamp(50+(r.chestD/h-(K?.14:.135))/.02*25):50,kol:r.armW?clamp(50+(r.armW/h-(K?.05:.056))/.012*25):50,bel:clamp(20+(whtr-.40)*300),gobek:r.waistD?clamp(10+(r.waistD/h-.10)/.08*80):clamp(20+(whtr-.40)*300),kalca:clamp(50+(r.hipW/h-(K?.215:.195))/.025*25),bacak:r.thighW?clamp(50+(r.thighW/h-(K?.095:.09))/.015*25):50}}
+function measureAll(buf,sex,h){const ok=v=>buf[v]&&buf[v].ok,f=dims(buf.Ön,h,sex,0),bk=ok('Arka')?dims(buf.Arka,h,sex,0):null,sd=ok('Yan')?dims(buf.Yan,h,sex,1):null,K=sex==='Kadın';
+ const av=k=>bk&&bk[k]?(f[k]+bk[k])/2:f[k],R={neck:1.04,waist:K?.74:.78,hip:K?.70:.74,chest:K?.72:.68},dep=k=>sd&&sd[k]?sd[k]:av(k)*R[k],circ=k=>ell(av(k)/2,dep(k)/2)*(k==='neck'?1:1.03);
+ const neck=circ('neck'),waist=circ('waist'),hip=circ('hip');if(!(neck>20&&waist>45&&hip>55))throw new Error('Ölçüler mantıksız çıktı; daha net bir fotoğrafla tekrar dene.');
+ const r={date:iso(),sex,h,neck,waist,hip,bf:navy(sex,h,neck,waist,hip),shoulderW:av('shoulder'),waistW:av('waist'),hipW:av('hip'),thighW:f.thigh,armW:f.arm,chestD:sd?sd.chest:0,waistD:sd?sd.waist:0,conf:sd?'yüksek':'orta',views:SCV.map(x=>x[0]).filter(ok)};
+ r.swr=r.shoulderW/r.waistW;r.whtr=waist/h;r.shape=toShape(r,sex);return r}
+function silThumb(b){const {W,H,m}=b,e=ext(b),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),id=x.createImageData(W,H);
+ for(let i=0;i<W*H;i++)if(m[i]){id.data[i*4]=15;id.data[i*4+1]=118;id.data[i*4+2]=110;id.data[i*4+3]=255}x.putImageData(id,0,0);
+ const ph=e.bot-e.top+1,pw=e.r-e.l+1,th=200,s=th/ph,o=document.createElement('canvas');o.width=Math.max(8,Math.round(pw*s)+8);o.height=th+8;o.getContext('2d').drawImage(c,e.l,e.top,pw,ph,4,4,o.width-8,th);return o.toDataURL('image/png')}
+async function processScan(file,view){scanBuf[view]={busy:1};scanRes=null;render();
+ try{const b=await detectImg(file),v=vcheck(b,view);if(v.err)scanBuf[view]={err:v.err};else{b.ok=1;b.sil=silThumb(b);b.warn=v.warn;scanBuf[view]=b;if(S.cfg.silOnly===false)addPhoto(file,view)}}
+ catch(e){scanBuf[view]={err:/import|fetch|load|module|network/i.test(e.message)?'Analiz motoru yüklenemedi; internet bağlantını kontrol et.':e.message}}
+ ui.scmsg='';render()}
+function scanCard(){const hh=num(S.wiz.h)||(S.profile&&S.profile.h);
+ return `<details ${S.scans.length?'':'open'}><summary class="sm" style="font-weight:600;cursor:pointer;padding:4px 0">Nasıl çekilir?</summary><div class="tip">👕 Dar ve az kıyafet: erkek üst çıplak ya da dar atlet + dar şort; kadın spor sütyeni + dar tayt/şort. Bol kıyafet ölçümü bozar.<br>💇 Saçlar topuz, boyun görünsün. Çorap ve ayakkabı yok.<br>🧱 Düz duvar önünde, iyi ışıkta.<br>📱 Telefon bel hizasında, ~2 m uzakta, dik. Baştan ayağa kadrajda ol; kamera zamanlayıcısını (10 sn) kullan.<br>🧍 Önden/arkadan: kollar gövdeden hafif açık (A pozu), ayaklar omuz genişliğinde. Yandan: kollar önde birleşik, dik dur.<br>🔒 Analiz bu telefonda yapılır; fotoğraf hiçbir sunucuya gönderilmez.</div></details>
+ ${hh?'':`<label class="l">Boyun (cm), ölçek için gerekli</label><input inputmode="numeric" data-w="h" value="${esc(S.wiz.h)}" placeholder="178">`}
+ <div class="grid3" style="margin-top:10px">${SCV.map(([k,n,o])=>{const b=scanBuf[k]||{};return `<label style="display:block;text-align:center;border:1.5px dashed ${b.ok?'var(--ok)':b.err?'var(--er)':'var(--bd)'};border-radius:14px;padding:8px 4px;cursor:pointer;background:var(--card)">${b.sil?`<img src="${b.sil}" alt="" style="height:96px;display:block;margin:0 auto">`:`<div style="font-size:30px;line-height:96px">${b.busy?'⏳':'📷'}</div>`}<div style="font-weight:600">${n}</div><div class="xs">${b.busy?'Analiz…':b.err?'<span style="color:var(--er)">Tekrar çek</span>':b.ok?'✓ hazır':o}</div><input type="file" accept="image/*" class="hide" data-scan="${k}"></label>`}).join('')}</div>
+ ${SCV.map(([k,n])=>{const b=scanBuf[k];return b&&(b.err||b.warn)?`<div class="${b.err?'err':'xs'}">${n}: ${esc(b.err||b.warn)}</div>`:''}).join('')}
+ <label class="row sm" style="margin-top:12px;gap:10px;align-items:flex-start"><input type="checkbox" data-silonly ${S.cfg.silOnly!==false?'checked':''} style="width:22px;min-height:22px;flex:none;margin-top:2px"><span>Sadece silüeti sakla <span class="xs">(fotoğraf analizden sonra silinir; ilerleme hatlar üzerinden karşılaştırılır)</span></span></label>
+ <button class="pr full" style="margin-top:10px" data-a="scanGo" ${scanBuf.Ön&&scanBuf.Ön.ok?'':'disabled'}>Analiz et</button>
+ <div class="xs" id="scmsg" style="margin-top:6px">${esc(ui.scmsg||'Önden fotoğraf yeter; yandan da çekersen yağ oranı daha doğru çıkar.')}</div>
+ ${scanRes?scanResult(scanRes):''}`}
+function scanResult(r){return `<div class="tip" style="background:var(--acbg)"><div style="font-weight:700;font-size:19px">Tahmini yağ oranı: %${fmt(r.bf)} <span class="xs">(±3–4)</span></div><div class="sm">Bel ${fmt(r.waist)} cm · Kalça ${fmt(r.hip)} cm · Boyun ${fmt(r.neck)} cm</div><div class="sm">Omuz/bel oranı ${r.swr.toFixed(2).replace('.',',')} · Bel/boy oranı ${r.whtr.toFixed(2).replace('.',',')} ${r.whtr<.5?'(sağlıklı aralıkta)':'(0,50 altı hedeflenir)'}</div>${r.conf==='orta'?'<div class="xs">Yandan fotoğraf olmadığı için derinlik tahmin edildi.</div>':''}<div class="xs" style="margin-top:4px">"Şu anki vücudum" silüeti bu ölçülere göre ayarlandı. Mezurayla ölçtüysen o değer daha doğrudur.</div><button class="full sm" style="margin-top:8px" data-a="scanSave">Ölçümlere ekle (yağ %, bel, kalça)</button></div>`}
+function scanHist(){if(!S.scans.length)return '';const a=S.scans[0],b=S.scans[S.scans.length-1];
+ return `<div class="card"><h2>Analiz geçmişi</h2>${S.scans.length>1?`<div class="grid2">${[a,b].map((x,i)=>`<div style="text-align:center">${x.sil&&x.sil['Ön']?`<img src="${x.sil['Ön']}" alt="" style="height:170px">`:''}<div class="xs">${i?'Son':'İlk'} · ${x.date}</div></div>`).join('')}</div><div class="sm" style="margin-top:8px;font-weight:600">Bel ${fmt(a.waist)} → ${fmt(b.waist)} cm · Yağ %${fmt(a.bf)} → %${fmt(b.bf)}</div>`:''}${[...S.scans].reverse().slice(0,12).map(x=>`<div class="row sp sm" style="padding:6px 0;border-top:1px solid var(--bd)"><span class="f1">${x.date}<br><span class="xs">%${fmt(x.bf)} yağ · bel ${fmt(x.waist)} cm</span></span><button class="sm" style="color:var(--er)" data-a="delScan" data-v="${x.id}">${ui.delS===x.id?'Emin misin?':'Sil'}</button></div>`).join('')}</div>`}
 
 /* ---------- görünümler ---------- */
 const V={};
 function setupSteps(){return [
  ['Bağlantı',!urlProblem(),'set','Ayarlar → Kodu kameraya okut'],
- ['Başlangıç fotoğrafları',S.photos.length>0,'foto','Önden, yandan, arkadan'],
+ ['Vücut analizi ve hedef',S.scans.length>0||S.photos.length>0||!!(S.shape&&S.shape.goalSet),'foto','Vücut → fotoğraf analizi, hedef silüet'],
  ['Başlangıç kilosu',bodySeries('kg').length>0,'prog','İlerleme → Ölçüm ekle'],
  ['İlk antrenman',S.logs.length>0,'today','Aşağıdaki "Başla" düğmesiyle']]}
 V.today=()=>{
@@ -305,20 +465,21 @@ V.today=()=>{
  if(ui.open||ui.alt)return workoutCard(ui.open||ui.alt,ui.open?ui.openP:pw);
  let h=`<div class="mut">${DL[di]}, ${d.getDate()} ${MON[d.getMonth()]}</div><h1>${S.profile&&S.profile.name?'Merhaba '+esc(S.profile.name)+' 👋':'Bugün'}</h1>`;
  const st=setupSteps();if(st.some(x=>!x[1]))h+=`<div class="card"><h2>Başlarken</h2><div class="mut">Bunları bir kez yap, sonra her gün sadece antrenmanını kaydedeceksin.</div>${st.map(([n,ok,r,hint],i)=>`<div class="step ${ok?'done':''}"><div class="dot">${ok?'✓':i+1}</div><div class="f1"><div style="font-weight:600">${n}</div><div class="xs">${hint}</div></div>${ok?'':`<button class="sm" data-a="go" data-v="${r}">Yap</button>`}</div>`).join('')}</div>`;
+ const ym=yMiss();
+ if(ym)h+=`<div class="card" id="ycard" style="border:2px solid var(--wr)${ui.needY?';box-shadow:0 0 0 5px var(--wrbg)':''}"><h2>Dün ${esc(labOf(ym.p))} planın vardı. Yaptın mı?</h2><div class="mut">Kaydetmeyi unutmuş olabilirsin. Yapmadıysan bugünün planını spora başlamadan düzenlerim.</div><div class="row" style="margin-top:10px"><button class="f1 pr" data-a="quickD" data-k="${ym.d}" data-v="${esc(ym.p)}">Evet, yaptım</button><button class="f1" data-a="yNo">Hayır</button></div>${ui.yNo?`<div style="margin-top:12px"><div class="sm" style="font-weight:600;margin-bottom:6px">Neden? (isteğe bağlı)</div>${WREASON.map(r=>ch(r,false,'missR',ym.d+'|'+ym.p,r)).join('')}${ch('Geç',false,'missR',ym.d+'|'+ym.p,'Belirtilmedi')}</div>`:''}</div>`;
+ Object.keys(S.rev).filter(d=>d>=t&&daysBetween(S.rev[d].from,t)<=3).sort().forEach(d=>{h+=revCard(d,S.rev[d],t)});
  const ms=missedDays();
- if(ms.length){h+=`<div class="card" style="border:2px solid var(--wr)"><h2>⏰ Kayıt bekleyenler</h2><div class="mut">Bu günlerin planı için kayıt yok. Yaptıysan kaydet, yapamadıysan söyle; planı ona göre ayarlarım.</div>${ms.map(({d,p})=>{const lb=p.split(' · ')[1],key=d+'|'+p,day=daysBetween(d,t)===1?'Dün':DL[dIdx(new Date(d+'T12:00:00'))];return `<div class="ex"><div style="font-weight:700">${day}: ${esc(p.replace('Ağırlık · ','🏋️ '))}</div><div class="row" style="margin-top:8px"><button class="f1 pr" data-a="${p.startsWith('Ağırlık')?'quickD':'actD'}" data-k="${esc(d)}" data-v="${esc(p)}">Yaptım</button><button class="f1" data-a="missO" data-v="${esc(key)}">Yapamadım</button></div>${ui.miss===key?`<div style="margin-top:8px">${['Yorgunluk','İş','Hastalık','Sakatlık/ağrı','Zaman yok','Diğer'].map(r=>ch(r,false,'missR',key,r)).join('')}</div>`:''}</div>`}).join('')}</div>`}
- (S.makeup||[]).forEach((m,mi)=>{const nd=nextWeightsDay(),cf=conflictToday(),todayW=planned.some(x=>x.startsWith('Ağırlık'));
-  h+=`<div class="card" style="border:2px solid var(--ac)"><h2>🔁 Kaçan antrenman: ${esc(m.label)}</h2><div class="mut">${cf?'Bugün kuralına göre ağırlık yapılamıyor (aynı gün olmaz).':todayW?'Bugün zaten ağırlık günün var. Kaçanı yapıp bugünkünü bir sonraki seferde yapabilirsin.':'Bugün ağırlık yok; kaçanı bugün yapmak en iyisi.'}</div><div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">${cf||m.d===t?'':`<button class="${todayW?'':'pr '}full" data-a="mkToday" data-v="${mi}">Bugün yap${todayW?' (bugünküyle yer değiştir)':' (önerilen)'}</button>`}${nd?`<button class="${cf||todayW?'pr ':''}full" data-a="mkNext" data-v="${mi}">Sonraki ağırlık gününe koy (${DL[dIdx(new Date(nd+'T12:00:00'))]}), haftayı kaydır</button>`:''}<button class="full" data-a="mkSkip" data-v="${mi}">Atla, plana devam</button></div></div>`});
+ if(ms.length)h+=`<div class="card"><h3>Kayıt bekleyenler</h3>${ms.map(({d,p})=>`<div class="row" style="padding:8px 0;border-top:1px solid var(--bd)"><div class="f1 sm"><b>${daysBetween(d,t)===1?'Dün':DL[dIdx(new Date(d+'T12:00:00'))]}</b> · ${esc(p.replace('Ağırlık · ','🏋️ '))}</div><button class="sm pr" data-a="${isW(p)?'quickD':'actD'}" data-k="${d}" data-v="${esc(p)}">Yaptım</button><button class="sm" data-a="missQ" data-k="${d}" data-v="${esc(p)}">Yapmadım</button></div>`).join('')}</div>`;
  if(breakDays()>=10)h+=`<div class="ban" style="background:var(--wrbg);color:var(--wr)">Uzun bir ara verdin (${breakDays()} gün). Sakatlanmamak için ağırlıklar bu dönüşte %10 hafif. Kaldığın yerden devam!</div>`;
  if(S.msg&&S.msg.date===t)h+=`<div class="card"><h2>🏅 Koç</h2>${S.msg.lines.map(l=>`<div class="sm" style="margin-top:4px">${l}</div>`).join('')}</div>`;
  if(P.ph.dl)h+=`<div class="ban" style="background:var(--okbg);color:var(--ok)">Bu hafta toparlanma haftası: setler az, ağırlıklar %10 hafif.</div>`;
  // hero
  h+=`<div class="card hero"><div class="xs">Bugünün planı · Blok ${P.block+1}, hafta ${P.wib+1} (${P.ph.n})</div>`;
  if(!planned.length)h+=`<h2 style="margin:6px 0 4px;color:#fff">Dinlenme günü 😌</h2><div class="mut">Hafif yürüyüş yeter. Bir şey yaptıysan aşağıdan ekle.</div>`;
- else{h+=planned.map(p=>{const dn=done.find(c=>c.act===p);return `<div class="row" style="padding:10px 0;border-top:1px solid rgba(255,255,255,.2)"><div class="f1"><div style="font-weight:700;font-size:18px">${dn?(dn.status==='yapıldı'?'✓ ':'✕ '):''}${esc(p.replace('Ağırlık · ','🏋️ '))}</div>${p.startsWith('Ağırlık')&&!dn?`<div class="xs">${session(p.split(' · ')[1]).length} hareket · ~${S.wiz.sure} dk${di<5?' · '+esc(S.wiz.wk)+' sonrası':''}</div>`:''}</div>${dn?'':p.startsWith('Ağırlık')?`<div style="display:flex;flex-direction:column;gap:6px"><button class="wh" data-a="open" data-k="${esc(p)}" data-v="${esc(p.split(' · ')[1])}">Başla</button><button class="wh" style="min-height:38px;font-size:13px;background:rgba(255,255,255,.18);color:#fff" data-a="quick" data-k="${esc(p)}" data-v="${esc(p.split(' · ')[1])}">Sonradan kaydet</button><button class="wh" style="min-height:34px;font-size:13px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)" data-a="missO" data-v="${esc(t+'|'+p)}">Bugün yapamayacağım</button></div>`:`<button class="wh" data-a="actO" data-v="${esc(p)}">Kaydet</button>`}</div>`}).join('')}
+ else{h+=planned.map(p=>{const dn=done.find(c=>c.act===p);return `<div class="row" style="padding:10px 0;border-top:1px solid rgba(255,255,255,.2)"><div class="f1"><div style="font-weight:700;font-size:18px">${dn?(dn.status==='yapıldı'?'✓ ':'✕ '):''}${esc(p.replace('Ağırlık · ','🏋️ '))}</div>${p.startsWith('Ağırlık')&&!dn?`<div class="xs">${session(p.split(' · ')[1],t).length} hareket${S.mrg[t]&&S.mrg[t].to===p.split(' · ')[1]?' (+ '+esc(S.mrg[t].add)+')':''}${S.light[t]?' · hafif':''} · ~${S.wiz.sure} dk${di<5?' · '+esc(S.wiz.wk)+' sonrası':''}</div>`:''}</div>${dn?'':p.startsWith('Ağırlık')?`<div style="display:flex;flex-direction:column;gap:6px"><button class="wh" data-a="open" data-k="${esc(p)}" data-v="${esc(p.split(' · ')[1])}">Başla</button><button class="wh" style="min-height:38px;font-size:13px;background:rgba(255,255,255,.18);color:#fff" data-a="quick" data-k="${esc(p)}" data-v="${esc(p.split(' · ')[1])}">Sonradan kaydet</button><button class="wh" style="min-height:34px;font-size:13px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)" data-a="missO" data-v="${esc(t+'|'+p)}">Bugün yapamayacağım</button></div>`:`<button class="wh" data-a="actO" data-v="${esc(p)}">Kaydet</button>`}</div>`}).join('')}
  h+=`</div>`;
  const tk=ui.miss&&ui.miss.startsWith(t+'|')?ui.miss:null;if(tk)h+=`<div class="card"><h3>Neden yapamayacaksın?</h3><div class="mut" style="margin-bottom:8px">Söyle, haftayı ona göre ayarlayayım.</div>${['Yorgunluk','İş','Hastalık','Sakatlık/ağrı','Zaman yok','Diğer'].map(r=>ch(r,false,'missR',tk,r)).join('')}</div>`;
- const lp=lastPhotoDate();if(lp&&daysBetween(lp,t)>=14)h+=`<div class="ban" style="background:var(--wrbg);color:var(--wr)">📸 İlerleme fotoğrafı zamanı. <a href="#" data-a="go" data-v="foto">Fotoğraf çek</a></div>`;
+ const lp=lastPhotoDate();if(lp&&daysBetween(lp,t)>=14)h+=`<div class="ban" style="background:var(--wrbg);color:var(--wr)">📸 2 haftalık kontrol zamanı. <a href="#" data-a="go" data-v="foto">Fotoğraf analizi yap</a></div>`;
  const ws=bodySeries('kg');if(ws.length&&daysBetween(ws[ws.length-1][0],t)>=3)h+=`<div class="ban" style="background:var(--acbg);color:var(--ac)">⚖️ 3 gündür tartı verisi yok. Mi tartıya çık.</div>`;
  todo.filter(p=>!p.startsWith('Ağırlık')&&ui.act===p).forEach(p=>{h+=actCard(p)});
  (ui.extra||[]).filter(a=>!doneActs.includes(a)).forEach(a=>{h+=actCard(a,true)});
@@ -379,7 +540,7 @@ function actCard(a,extra){const k=a,dr=S.draft[todayISO()+'|'+k]||{};const dist=
  <button class="pr full" style="margin-top:10px" data-a="saveA" data-v="${esc(a)}">Yaptım, kaydet</button>${extra?'':skipBox(a)}</div>`}
 
 V.plan=()=>{const w=S.wiz,ti=dIdx();
- let h=`<h1>Haftalık plan</h1><div class="card">${D.map((_,i)=>planFor(addDays(todayISO(),i-ti))).map((x,i)=>`<div class="row" style="padding:9px 0;border-top:${i?'.5px solid var(--bd)':'0'};${i===ti?'font-weight:600':''}"><span style="width:40px" class="${i===ti?'':'mut'}">${D[i]}</span><span class="f1 sm">${!w.td.includes(i)?'<span class="xs">Müsait değil</span>':x.length?x.map(esc).join(' + ')+(i<5?` <span class="xs">· ${esc(w.wk)}+</span>`:''):'Dinlenme'}</span></div>`).join('')}${w.act.Yürüyüş.on?'<div class="xs" style="margin-top:6px">Her gün yürüyüş: hedef 8–10 bin adım</div>':''}</div>`;
+ let h=`<h1>Haftalık plan</h1><div class="card">${D.map((_,i)=>planFor(addDays(todayISO(),i-ti))).map((x,i)=>`<div class="row" style="padding:9px 0;border-top:${i?'.5px solid var(--bd)':'0'};${i===ti?'font-weight:600':''}"><span style="width:40px" class="${i===ti?'':'mut'}">${D[i]}</span><span class="f1 sm">${!w.td.includes(i)?'<span class="xs">Müsait değil</span>':x.length?x.map(esc).join(' + ')+(S.mrg[addDays(todayISO(),i-ti)]?' <span class="badge">+ '+esc(S.mrg[addDays(todayISO(),i-ti)].add)+' ana hareketleri</span>':'')+(i<5?` <span class="xs">· ${esc(w.wk)}+</span>`:''):'Dinlenme'}</span></div>`).join('')}${w.act.Yürüyüş.on?'<div class="xs" style="margin-top:6px">Her gün yürüyüş: hedef 8–10 bin adım</div>':''}</div>`;
  const labs=[...new Set((S.plan||[]).flat().filter(x=>x.startsWith('Ağırlık')).map(x=>x.split(' · ')[1]))];
  const P=phase();
  h+=`<div class="card"><div class="row sp"><h2 style="margin:0">Gelişim planı</h2><span class="badge">Blok ${P.block+1} · Hafta ${P.wib+1}/5</span></div><div class="bar" style="margin:10px 0"><div style="width:${(P.wib+1)*20}%"></div></div>${PHASES.map((x,i)=>`<div class="row sm" style="padding:5px 0;${i===P.wib?'font-weight:600':'color:var(--tx2)'}"><span style="width:22px">${i+1}.</span><span class="f1">${x.n} <span class="xs">RPE ${x.rpe}</span><div class="xs">${x.txt}</div></span></div>`).join('')}<div class="xs" style="margin-top:6px">Her seferinde hedefin net: örn. 3×8. Hepsini yaparsan bir dahaki sefer 3×9, 3×10… Üst sınıra gelince ağırlık artar ve tekrar baştan başlar. Her 5 haftalık blok sonunda yardımcı hareketler yenilenir, ana hareketler 2 blokta bir değişir. Böylece vücut alışmaz, ilerleme sürer.</div></div>`;
@@ -428,12 +589,14 @@ V.prog=()=>{const t=todayISO(),rg=ui.rng||90,ws=bodySeries('kg').filter(s=>daysB
  return h};
 
 V.foto=()=>{const lp=lastPhotoDate();
- let h=`<h1>Fotoğraflar</h1><div class="mut">Her 14 günde bir, aynı ışık ve açıyla: önden, yandan, arkadan. ${lp?'Son: '+lp:''}</div><div class="card"><div class="grid2">${['Ön','Yan','Arka'].map(a=>`<label class="ch" style="text-align:center;margin:0">${a}<input type="file" accept="image/*" class="hide" data-photo="${a}"></label>`).join('')}</div><div class="xs" style="margin-top:8px">${S.cfg.url?'Fotoğraflar Google Drive\'daki "Fitness Koç Fotoğraflar" klasörüne yüklenir.':'Drive\'a yüklemek için önce Ayarlar\'dan bağlantıyı kur.'}</div><div class="err">${ui.perr||''}</div></div>`;
+ let h=`<h1>Vücut</h1><div class="mut">Fotoğraftan analiz, hedef vücut ve yol haritası.</div><div class="card"><h2>📐 Fotoğraftan analiz</h2>${scanCard()}</div><div class="card"><h2>🎯 Şu an → Hedef</h2>${shaperHTML(false)}</div>${roadCard()}${scanHist()}`;
+ h+=`<div class="card"><h2>İlerleme fotoğrafları</h2><div class="mut">İsteğe bağlı: analiz dışında saklamak istediğin fotoğraflar. ${lp?'Son: '+lp:''}</div><div class="grid2" style="margin-top:8px">${['Ön','Yan','Arka'].map(a=>`<label class="ch" style="text-align:center;margin:0">${a}<input type="file" accept="image/*" class="hide" data-photo="${a}"></label>`).join('')}</div><div class="xs" style="margin-top:8px">${S.cfg.url?'Google Drive\'daki "Fitness Koç Fotoğraflar" klasörüne yüklenir.':'Drive\'a yüklemek için önce Ayarlar\'dan bağlantıyı kur.'}</div><div class="err">${ui.perr||''}</div></div>`;
  const g={};S.photos.forEach(p=>{(g[p.date]=g[p.date]||[]).push(p)});
  Object.keys(g).sort().reverse().forEach(d=>{h+=`<div class="card"><h2>${d}</h2><div class="grid2">${g[d].map(p=>`<div><img class="ph" src="${p.thumb}" alt="${esc(p.angle)}"><div class="xs">${esc(p.angle)} ${p.url?`· <a href="${esc(p.url)}" target="_blank" rel="noopener">Drive</a>`:'· yüklenmedi'}</div></div>`).join('')}</div></div>`});
  return h};
 
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
+<div class="card"><h2>Akşam hatırlatıcısı</h2><div class="sm">Kaydetmeyi unuttuğun günler kaçmasın: iPhone Kestirmeler → Otomasyon → + → Günün Saati 22:00, Her gün → Hemen çalıştır → eylem "URL'leri Aç" → <b style="word-break:break-all">${esc(location.origin+location.pathname)}?checkin=1</b></div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
 <div class="xs">Fitness Koç v${APP_V} · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
@@ -443,14 +606,15 @@ const X=()=>AL.filter(a=>S.wiz.act[a].on&&a!=='Yürüyüş');
 const stp=(k,v,t)=>`<div class="row sp" style="margin-top:10px"><span>${t}</span><span class="row"><button class="sm" data-a="inc" data-k="${k}" data-v="-1" aria-label="azalt">−</button><b style="width:26px;text-align:center">${v}</b><button class="sm" data-a="inc" data-k="${k}" data-v="1" aria-label="artır">+</button></span></div>`;
 const inp=(f,l,ph,mode)=>`<label class="l">${l}</label><input inputmode="${mode||'decimal'}" data-w="${f}" value="${esc(f.includes('.')?S.wiz.lifts[f.split('.')[1]]:S.wiz[f])}" placeholder="${ph||''}">`;
 const WS=[
- ()=>`<h2>Ana hedefin ne?</h2>${['Yağ yakımı','Kas kazanımı','Yağ yakımı + kas','Kondisyon'].map(g=>ch(g,S.wiz.goal===g,'goal','',g)).join('')}`,
  ()=>`<h2>Haftada kaç gün spor yapabilirsin?</h2><div class="mut">Ağırlık, pilates, koşu, maç… hepsi sayılır.</div>${stp('cnt',S.wiz.cnt,'Gün sayısı')}`,
  ()=>`<h2>Hangi günler?</h2><label class="l">Hafta içi</label>${[0,1,2,3,4].map(i=>ch(D[i],S.wiz.td.includes(i),'td','',i)).join('')}<label class="l">Hafta sonu</label>${[5,6].map(i=>ch(D[i],S.wiz.td.includes(i),'td','',i)).join('')}<div class="xs">${S.wiz.td.length}/${S.wiz.cnt} gün seçildi</div>`,
  ()=>`<h2>Hangi saatlerde müsaitsin?</h2>${S.wiz.td.some(i=>i<5)?`<label class="l">Hafta içi en erken saat</label><input type="time" data-w="wk" value="${esc(S.wiz.wk)}">`:''}${S.wiz.td.some(i=>i>4)?`<label class="l">Hafta sonu</label>${['Serbest','Sabah','Öğleden sonra','Akşam'].map(x=>ch(x,S.wiz.we===x,'we','',x)).join('')}`:''}`,
  ()=>`<h2>Neler yapıyorsun, haftada kaç kez?</h2>${AL.map(a=>ch(a,S.wiz.act[a].on,'act','',a)).join('')}${X().map(a=>stp(a,S.wiz.act[a].n,a)).join('')}${S.wiz.act.Yürüyüş.on?'<div class="xs" style="margin-top:8px">Yürüyüş her gün sayılır.</div>':''}<label class="l">Listede olmayan bir spor</label><div class="row"><input class="f1" id="cust" placeholder="Okçuluk" maxlength="30"><button data-a="addc">Ekle</button></div>`,
  ()=>`<h2>Hangi gün neler yapabilirsin?</h2><div class="mut">Her gün için mümkün olanları işaretle.</div>${S.wiz.td.map(i=>`<div class="ex"><div class="sm" style="font-weight:600;margin-bottom:6px">${DL[i]}</div>${X().map(a=>ch(a,S.wiz.act[a].d.includes(i),'dm',a,i)).join('')}</div>`).join('')}`,
  ()=>{const xs=X(),ps=[];xs.forEach((a,i)=>xs.slice(i+1).forEach(b=>ps.push(a+'|'+b)));return `<h2>Hangileri aynı gün olmaz?</h2>${ps.length?ps.map(p=>ch(p.replace('|',' + '),S.wiz.no.includes(p),'no','',p)).join(''):'<div class="mut">Tek aktivite seçtin, geç.</div>'}`},
- ()=>`<h2>Başlangıç bilgilerin</h2><div class="grid2"><div>${inp('age','Yaş','35','numeric')}</div><div>${inp('h','Boy (cm)','180','numeric')}</div><div>${inp('kg','Kilo (kg)','85')}</div><div>${inp('fat','Yağ % (ops.)','22')}</div></div><label class="l">Antrenman geçmişi</label>${['Yeni','<1 yıl','1–3 yıl','3+ yıl'].map(x=>ch(x,S.wiz.exp===x,'exp','',x)).join('')}`,
+ ()=>`<h2>Başlangıç bilgilerin</h2><div class="grid2"><div>${inp('age','Yaş','35','numeric')}</div><div>${inp('h','Boy (cm)','180','numeric')}</div><div>${inp('kg','Kilo (kg)','85')}</div><div>${inp('fat','Yağ % (ops.)','22')}</div></div><label class="l">Cinsiyet</label>${['Erkek','Kadın'].map(x=>ch(x,S.wiz.sex===x,'sex','',x)).join('')}<label class="l">Antrenman geçmişi</label>${['Yeni','<1 yıl','1–3 yıl','3+ yıl'].map(x=>ch(x,S.wiz.exp===x,'exp','',x)).join('')}`,
+ ()=>`<h2>Vücut fotoğrafı (isteğe bağlı)</h2><div class="mut">Fotoğraftan vücut tipini ve yağ oranını tahmin edip hedefini buna göre kurarım. İstemezsen "İleri" de; sonraki adımda elle seçersin.</div>${scanCard()}`,
+ ()=>`<h2>Şu anki ve hedef vücudun</h2><div class="mut">Önce "Şu anki vücudum"u, sonra "Hedefim"i ayarla. Planın tamamı buna göre kurulur.</div>${shaperHTML(true)}`,
  ()=>`<h2>Nerede antrenman yapacaksın?</h2>${Object.keys(EQS).map(x=>ch(x,S.wiz.eq===x,'eq','',x)).join('')}<div class="xs">Hareketler ekipmanına göre seçilir.</div>`,
  ()=>`<h2>Ağrı, sakatlık veya rahatsızlık var mı?</h2><div class="mut">Seçtiğin bölgeleri zorlayan hareketler yerine daha güvenli alternatifler konur.</div><div style="margin-top:10px">${ch('Yok',!S.wiz.inj.length,'injN','','')}${INJ.map(([k,l])=>ch(l,S.wiz.inj.includes(k),'inj','',k)).join('')}</div><label class="l">Kısa not (ops.)</label><input data-w="injNote" value="${esc(S.wiz.injNote)}" placeholder="Sağ omuzda baş üstü itişte ağrı"><div class="xs" style="margin-top:6px">Ciddi veya yeni bir ağrı varsa önce bir doktora ya da fizyoterapiste görün.</div>`,
  ()=>`<h2>Öncelikli bölgeler</h2><div class="mut">En fazla 2. Bu bölgelere ekstra set ve hareket eklenir.</div><div style="margin-top:10px">${Object.keys(PRIO).map(k=>ch(k,S.wiz.prio.includes(k),'prio','',k)).join('')}</div>`,
@@ -460,10 +624,10 @@ const WS=[
  ()=>{const r=planWeek(S.wiz);ui.wplan=r;return `<h2>Kuralların</h2><ul class="sm" style="padding-left:18px">${rulesText(S.wiz).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h2>Haftalık plan</h2>${r?r.map((x,i)=>`<div class="row sm" style="padding:7px 0;border-top:.5px solid var(--bd)"><span style="width:36px" class="mut">${D[i]}</span><span class="f1">${!S.wiz.td.includes(i)?'<span class="xs">Müsait değil</span>':x.length?x.map(esc).join(' + '):'Dinlenme'}</span></div>`).join(''):`<div class="err">Bu kurallarla plan kurulamıyor. Geri dönüp bir aktivitenin sayısını azalt ya da gün seçeneklerini genişlet.</div>`}`}
 ];
 function wvalid(){const w=S.wiz;
- if(wst===2&&w.td.length!==w.cnt)return `Tam ${w.cnt} gün seç.`;
- if(wst===4&&!X().length&&!w.act.Yürüyüş.on)return 'En az bir aktivite seç.';
- if(wst===4){const tot=X().reduce((s,a)=>s+w.act[a].n,0);if(tot>w.cnt*2)return 'Toplam seans sayısı çok yüksek (günde en fazla 2).'}
- if(wst===7&&!(num(w.age)>0&&num(w.h)>0&&num(w.kg)>0))return 'Yaş, boy ve kilo gir.';
+ if(wst===1&&w.td.length!==w.cnt)return `Tam ${w.cnt} gün seç.`;
+ if(wst===3&&!X().length&&!w.act.Yürüyüş.on)return 'En az bir aktivite seç.';
+ if(wst===3){const tot=X().reduce((s,a)=>s+w.act[a].n,0);if(tot>w.cnt*2)return 'Toplam seans sayısı çok yüksek (günde en fazla 2).'}
+ if(wst===6&&!(num(w.age)>0&&num(w.h)>0&&num(w.kg)>0))return 'Yaş, boy ve kilo gir.';
  return ''}
 V.wiz=()=>{const N=WS.length;return `<div class="row sp xs" style="margin-bottom:8px"><span>Kurulum</span><span>Adım ${wst+1}/${N}</span></div><div class="bar" style="margin-bottom:14px"><div style="width:${Math.round((wst+1)/N*100)}%"></div></div><div class="card">${WS[wst]()}<div class="err">${err}</div><div class="row" style="margin-top:14px">${wst?'<button class="f1" data-a="wnav" data-v="-1">Geri</button>':''}${wst<N-1?'<button class="f1 pr" data-a="wnav" data-v="1">İleri</button>':'<button class="f1 pr" data-a="wfin">Planı kaydet ve başla</button>'}</div></div>`};
 
@@ -471,7 +635,7 @@ V.wiz=()=>{const N=WS.length;return `<div class="row sp xs" style="margin-bottom
 const tg=(arr,v)=>{const j=arr.indexOf(v);j<0?arr.push(v):arr.splice(j,1);arr.sort()};
 function finishWiz(){const w=S.wiz,r=planWeek(w);if(!r){err='Plan kurulamıyor.';return render()}
  const first=!S.profile,t=todayISO();
- S.plan=r;S.profile=Object.assign(S.profile||{},{start:(S.profile&&S.profile.start)||t,goal:w.goal,age:num(w.age),h:num(w.h),exp:w.exp,inj:w.inj});
+ S.plan=r;S.profile=Object.assign(S.profile||{},{start:(S.profile&&S.profile.start)||t,goal:w.goal,sex:w.sex,age:num(w.age),h:num(w.h),exp:w.exp,inj:w.inj});
  initProg(w);
  if(first){const b={id:'b'+Date.now(),ts:Date.now(),date:t,kg:num(w.kg),fat:num(w.fat),bel:num(w.bel),gogus:num(w.gogus),kol:num(w.kol),kalca:num(w.kalca)};S.body.push(b);q('Body',[[t,b.kg,b.fat,b.bel,b.gogus,b.kol,b.kalca,'Kurulum']])}
  save();flush();route=first?'foto':'plan';err='';toast(first?'Plan hazır. Şimdi başlangıç fotoğrafları.':'Plan güncellendi.');render()}
@@ -490,8 +654,9 @@ function saveAct(a){const t=todayISO(),dr=S.draft[t+'|'+a]||{};
  S.checkins.push({date:t,act:a,status:'yapıldı',dur:num(dr.dur),dist:num(dr.dist),int:dr.int||''});
  q('Checkins',[[t,a,'yapıldı',num(dr.dur),num(dr.dist),dr.int||'','','']]);delete S.draft[t+'|'+a];
  ui.extra=(ui.extra||[]).filter(x=>x!==a);save();toast(a+' kaydedildi');render()}
-function skip(a,reason){const t=todayISO();S.checkins.push({date:t,act:a,status:'gitmedim',note:reason});q('Checkins',[[t,a,'gitmedim','','','','',reason]]);ui.skip=null;
- S.msg={date:t,lines:[reason==='Sakatlık/ağrı'?'Ağrıyı zorlama. Ağrı sürerse bir uzmana görün; o bölgeyi çalıştıran hareketleri geçici olarak atlayabilirsin.':'Sorun değil. Bir sonraki planlı günde kaldığın yerden devam; kaçan seansı üst üste yığmıyoruz.']};save();render()}
+function skip(a,reason){const t=todayISO();S.checkins.push({date:t,act:a,status:'gitmedim',note:reason});q('Checkins',[[t,a,'gitmedim','','','','',reason]]);ui.skip=null;ui.open=null;
+ const r=isW(a)?revise(labOf(a),t,reason):null;S.msg={date:t,lines:[missMsg(reason,r)]};save();render()}
+function missMsg(v,r){const sick=v==='Hastalık'||v==='Sakatlık/ağrı';return sick?(v==='Hastalık'?'Geçmiş olsun. İyileşene kadar zorlama.':'Ağrıyı zorlama; sürerse bir uzmana görün. O bölgeyi zorlayan hareketleri "Değiştir" ile değiştirebilirsin.')+(r?' Sonraki antrenmanı hafiflettim.':''):r?'Sorun değil. Planı güncelledim, ayrıntısı aşağıda.':'Sorun değil. Önümüzdeki 3 günde uygun yer yok; plana kaldığın yerden devam.'}
 function saveMeasure(){const m=ui.m||{},F=['kg','fat','bel','gogus','kol','kalca'],ed=ui.editB?S.body.find(b=>b.id===ui.editB):null;
  const d=(m.date&&/^\d{4}-\d{2}-\d{2}$/.test(m.date))?m.date:(ed?ed.date:todayISO());let any=false;const vals={};F.forEach(f=>{vals[f]=num(m[f]);if(vals[f]!=null)any=true});
  if(!any){ui.merr='En az bir değer gir.';return render()}ui.merr='';
@@ -546,7 +711,7 @@ const app=document.getElementById('app');
 app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.dataset.a,k=t.dataset.k,v=t.dataset.v,w=S.wiz;
  if(t.tagName==='A'&&t.getAttribute('href')==='#')e.preventDefault();
  switch(a){
-  case 'goal':w.goal=v;break;case 'we':w.we=v;break;case 'exp':w.exp=v;break;
+  case 'goal':w.goal=v;w.goalLock=1;break;case 'sex':w.sex=v;break;case 'we':w.we=v;break;case 'exp':w.exp=v;break;
   case 'inc':if(k==='cnt')w.cnt=Math.max(1,Math.min(7,w.cnt+ +v));else w.act[k].n=Math.max(1,Math.min(7,w.act[k].n+ +v));break;
   case 'addc':{const el=document.getElementById('cust'),nm=(el&&el.value||'').trim().replace(/[|<>]/g,'');if(!nm)break;if(!AL.includes(nm))w.custom.push(nm);syncActs();w.act[nm].on=1;save();break}
   case 'td':tg(w.td,+v);break;case 'act':w.act[v].on=w.act[v].on?0:1;break;case 'dm':tg(w.act[k].d,+v);break;case 'no':tg(w.no,v);break;
@@ -558,20 +723,29 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'eq':w.eq=v;break;case 'inj':tg(w.inj,v);break;case 'injN':w.inj=[];break;case 'sure':w.sure=+v;break;
   case 'prio':if(w.prio.includes(v))w.prio=w.prio.filter(x=>x!==v);else if(w.prio.length<2)w.prio.push(v);else toast('En fazla 2 bölge');break;
   case 'alt':ui.alt=v;ui.open=null;ui.fg=null;window.scrollTo(0,0);break;case 'altX':ui.alt=null;break;
-  case 'open':ui.open=v;ui.openP=k;ui.alt=null;ui.quick=null;window.scrollTo(0,0);break;
-  case 'quick':ui.open=v;ui.openP=k;ui.alt=null;ui.quick=1;window.scrollTo(0,0);break;
+  case 'open':case 'quick':if(!ui.open&&yMiss()){ui.needY=1;ui.yNo=1;render();const c=document.getElementById('ycard');if(c)c.scrollIntoView({behavior:'smooth',block:'center'});toast('Önce dünü netleştirelim');return}
+   ui.open=v;ui.openP=k;ui.alt=null;ui.quick=a==='quick'?1:null;window.scrollTo(0,0);break;
   case 'qs':{const [d1,lb,ex]=k.split('|'),key=d1+'|'+lb,dr=S.draft[key]=S.draft[key]||{sets:{},dur:'',rpe:'8'};dr.q=dr.q||{};dr.q[ex]=v;
    if(v==='edit'&&!(dr.sets[ex]||[]).length){const it=session(lb,d1).find(x=>x.id===ex);if(it)fillEx(dr,it)}save();break}
   case 'qsave':return quickSave(v,k||null);
   case 'quickD':ui.open=v.split(' · ')[1];ui.openP=v;ui.openD=k;ui.quick=1;ui.alt=null;window.scrollTo(0,0);break;
   case 'actD':S.checkins.push({date:k,act:v,status:'yapıldı'});q('Checkins',[[k,v,'yapıldı','','','','','sonradan']]);save();toast('Kaydedildi');break;
   case 'missO':ui.miss=ui.miss===v?null:v;break;
-  case 'missR':{const i=k.indexOf('|'),d1=k.slice(0,i),p2=k.slice(i+1);S.checkins.push({date:d1,act:p2,status:'gitmedim',note:v});q('Checkins',[[d1,p2,'gitmedim','','','','',v]]);ui.miss=null;
-   if(p2.startsWith('Ağırlık')&&v!=='Hastalık'&&v!=='Sakatlık/ağrı'){S.makeup=S.makeup||[];S.makeup.push({label:p2.split(' · ')[1],d:d1})}
-   S.msg={date:todayISO(),lines:[v==='Hastalık'?'Geçmiş olsun. İyileşene kadar zorlama; dönüşte hafif başlarız.':v==='Sakatlık/ağrı'?'Ağrıyı zorlama. Sürerse bir uzmana görün; o bölgeyi çalıştıran hareketleri "Değiştir" ile hafifletebilirsin.':'Sorun değil, olur böyle. Kaçanı nasıl telafi edeceğimizi aşağıda seç.']};save();break}
-  case 'mkToday':{const m=S.makeup[+v],t2=todayISO(),cur=planFor(t2).find(x=>x.startsWith('Ağırlık'));S.ovr=S.ovr||{};S.ovr[t2]=m.label;if(cur)shiftChain(cur.split(' · ')[1],t2);S.makeup.splice(+v,1);save();toast('Bugün: '+m.label+(cur?' · sonraki günler bir kaydırıldı':''));break}
-  case 'mkNext':{const m=S.makeup[+v];shiftChain(m.label,todayISO());S.makeup.splice(+v,1);save();toast(m.label+' sonraki ağırlık gününe kondu, sonrakiler bir kaydı');break}
-  case 'mkSkip':S.makeup.splice(+v,1);save();break;
+  case 'missR':{const i=k.indexOf('|'),d1=k.slice(0,i),p2=k.slice(i+1);S.checkins.push({date:d1,act:p2,status:'gitmedim',note:v});q('Checkins',[[d1,p2,'gitmedim','','','','',v]]);
+   const r=isW(p2)&&daysBetween(d1,todayISO())<=1?revise(labOf(p2),d1,v):null;ui.miss=null;ui.yNo=null;ui.needY=null;S.msg={date:todayISO(),lines:[missMsg(v,r)]};save();break}
+  case 'missQ':S.checkins.push({date:k,act:v,status:'gitmedim',note:'Belirtilmedi'});q('Checkins',[[k,v,'gitmedim','','','','','sonradan']]);save();break;
+  case 'yNo':ui.yNo=!ui.yNo;break;
+  case 'undoRev':undoRev(v);save();toast('Plan eski haline döndü');break;
+  case 'didY':{const r=S.rev[v];if(!r)break;undoRev(v);const act='Ağırlık · '+r.missed;S.checkins=S.checkins.filter(c=>!(c.date===r.from&&c.act===act&&c.status==='gitmedim'));save();ui.open=r.missed;ui.openP=act;ui.openD=r.from;ui.quick=1;ui.alt=null;window.scrollTo(0,0);break}
+  case 'shv':shapeS().view=v;save();break;case 'she':shapeS().ed=v;save();break;
+  case 'shp':{const sh=shapeS();if(k==='now'){sh.now=Object.assign(SH0(),SHP.now[v]);sh.src='manual';autoGoal()}else{sh.goal=shAdd(sh.now,SHP.goal[v]);sh.goalSet=1}if(route==='wiz'&&!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}save();break}
+  case 'shApply':{const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio;save();flush();S.msg={date:todayISO(),lines:[`Hedefin: ${dv.goal}.`+(dv.prio.length?` Öncelikli bölgeler: ${dv.prio.join(', ')} (ekstra set ve hareket).`:''),'Antrenmanların bundan sonra buna göre kuruluyor.']};toast('Plan hedefe göre güncellendi');break}
+  case 'scanGo':{const hcm=num(w.h)||(S.profile&&S.profile.h);if(!hcm){ui.scmsg='Önce boyunu yaz.';break}
+   try{const r=measureAll(scanBuf,w.sex,hcm);r.id='s'+Date.now();r.ts=Date.now();r.sil={};SCV.forEach(([x])=>{if(scanBuf[x]&&scanBuf[x].ok)r.sil[x]=scanBuf[x].sil});
+    S.scans.push(r);const sh=shapeS();sh.now=r.shape;sh.src='photo';sh.ed='now';autoGoal();if(route==='wiz'&&!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}scanRes=r;scanBuf={};ui.scmsg='Analiz tamam ✓';save()}
+   catch(er){ui.scmsg='Hesaplanamadı: '+er.message}break}
+  case 'scanSave':{const r=scanRes;if(!r)break;const R1=x=>Math.round(x*10)/10,b={id:'b'+Date.now(),ts:Date.now(),date:r.date,fat:R1(r.bf),bel:R1(r.waist),kalca:R1(r.hip)};S.body.push(b);q('Body',[[b.date,'',b.fat,b.bel,'','',b.kalca,'Foto analiz']]);scanRes=null;save();toast('Ölçümlere eklendi');break}
+  case 'delScan':if(ui.delS!==v){ui.delS=v;break}S.scans=S.scans.filter(x=>x.id!==v);ui.delS=null;save();break;
   case 'qfill':{const [d1,lb]=k.split('|'),dr=S.draft[k]=S.draft[k]||{sets:{},dur:'',rpe:'8'},items=session(lb,d1),it=items.find(x=>x.id===v);if(it)fillEx(dr,it);save();ui.ws=ui.ws||{};ui.ws[k]=Math.min((ui.ws[k]||0)+1,items.length+1);render();window.scrollTo(0,0);return}case 'closeW':ui.open=null;ui.alt=null;ui.quick=null;ui.openD=null;break;
   case 'wstep':ui.ws=ui.ws||{};ui.ws[k]=+v;ui.swap=null;render();window.scrollTo(0,0);return;
   case 'actO':ui.act=ui.act===v?null:v;break;case 'tog':ui[v]=!ui[v];break;
@@ -604,13 +778,14 @@ app.addEventListener('input',e=>{const el=e.target,d=el.dataset;
   const b=document.getElementById('adh');if(b)b.textContent=adh(session(label,dt),dr);save();return}
  if(d.dr){const p=d.dr.split('|'),f=p.pop(),key=p.join('|');S.draft[key]=S.draft[key]||{sets:{},dur:'',rpe:'8'};S.draft[key][f]=el.value;save();return}
  if(d.m){ui.m=ui.m||{};ui.m[d.m]=el.value;return}
+ if(d.sh){const sh=shapeS();sh[sh.ed][d.sh]=+el.value;if(sh.ed==='now'){sh.src='manual';autoGoal()}else sh.goalSet=1;if(route==='wiz'&&!S.wiz.goalLock){const dv=shDerive();S.wiz.goal=dv.goal;S.wiz.prio=dv.prio}save();const g=document.getElementById('shsvg');if(g)g.innerHTML=shSVG();const u=document.getElementById('shsum');if(u)u.innerHTML=shSum();return}
  if(d.cfg){S.cfg[d.cfg]=el.value.replace(/\s+/g,'');save();return}
  if(d.pf){S.profile=S.profile||{};S.profile[d.pf]=el.value;save();return}});
-app.addEventListener('change',e=>{const el=e.target;if(el.dataset.ocr&&el.files&&el.files[0]){ocrToken(el.files[0]);el.value='';return}if(el.dataset.photo&&el.files&&el.files[0])addPhoto(el.files[0],el.dataset.photo)});
+app.addEventListener('change',e=>{const el=e.target;if(el.dataset.scan&&el.files&&el.files[0]){processScan(el.files[0],el.dataset.scan);el.value='';return}if('silonly' in el.dataset){S.cfg.silOnly=el.checked;save();return}if(el.dataset.sh&&route==='wiz'){render();return}if(el.dataset.ocr&&el.files&&el.files[0]){ocrToken(el.files[0]);el.value='';return}if(el.dataset.photo&&el.files&&el.files[0])addPhoto(el.files[0],el.dataset.photo)});
 
 /* ---------- çizim ---------- */
-const IC={today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',plan:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',prog:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',foto:'<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l2-3h4l2 3"/>',set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
-const TABS=[['today','Bugün'],['plan','Plan'],['prog','İlerleme'],['foto','Foto'],['set','Ayarlar']];
+const IC={today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',plan:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',prog:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',foto:'<circle cx="12" cy="4.5" r="2.5"/><path d="M12 8v7M6 10.5l6 1 6-1M9 22l3-7 3 7"/>',set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
+const TABS=[['today','Bugün'],['plan','Plan'],['prog','İlerleme'],['foto','Vücut'],['set','Ayarlar']];
 function updNav(){const n=document.getElementById('nav');if(route==='wiz'&&!S.profile){n.innerHTML='';return}
  n.innerHTML=TABS.map(([r,l])=>`<a href="#" data-r="${r}" class="${route===r?'on2':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[r]}</svg>${l}${r==='set'&&S.queue.length?' •':''}</a>`).join('')}
 document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('[data-r]');if(!a)return;e.preventDefault();stopScan();route=a.dataset.r;ui.reset=false;ui.open=null;ui.alt=null;render();window.scrollTo(0,0)});
