@@ -23,13 +23,12 @@ Toplam ~30 dk. Sırayla yap.
 1. Adresi **Safari**'de aç → Paylaş → **Ana Ekrana Ekle**.
 2. Uygulamayı ana ekrandaki ikondan aç (bundan sonra hep oradan aç; Safari'deki kopya ayrı veri tutar).
 3. Kurulum sihirbazını doldur → plan oluşur → başlangıç fotoğraflarını çek.
-4. **Ayarlar** sekmesi → QR'ı tara (aşağıda) → **Bağlantıyı test et** → "Bağlantı tamam ✓".
+4. **Ayarlar** sekmesi → kodu kameraya okut (aşağıda) → **Bağlantıyı test et** → "Bağlantı tamam ✓".
 
-### Telefona bağlama (QR ile, elle yazmadan)
-1. Bilgisayarda tabloyu yenile → üst menüde **Fitness Koç → Telefona bağla (QR)**.
-2. Açılan pencerede URL kutusuna 1. bölüm 5. adımdaki `/exec` adresini yapıştır (genelde kendiliğinden dolar). QR belirir.
-3. Telefonda uygulama → **Ayarlar → 📷 QR kodu tara** → kameraya göster. Bitti.
-   Alternatif: penceredeki metni Mac'te kopyala, iPhone'da **Panodan yapıştır**'a bas (aynı Apple hesabı, Evrensel Pano).
+### Telefona bağlama (elle yazmadan)
+1. Bilgisayarda tabloyu yenile → üst menü **Fitness Koç → Telefona bağla**. Kod büyük harflerle görünür.
+2. Telefonda uygulama → **Ayarlar → 📷 Kodu kameraya okut** → telefonu ekrandaki koda tut, kendisi okur.
+3. URL için: penceredeki URL'yi Mac'te kopyala → iPhone'da **Panodan yapıştır** (aynı Apple hesabı). URL alanı doluysa sadece kod okunur.
 
 ## 4. Mi tartı → Apple Health
 Zepp Life (Mi Fit) → Profil → **Apple Health** (Üçüncü taraf erişimi) → bağla, kilo ve vücut yağını yazmaya izin ver.

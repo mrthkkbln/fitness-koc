@@ -4,12 +4,12 @@
  * 2) Üstten "kurulum" fonksiyonunu seçip ▶ Çalıştır. İzinleri onayla.
  * 3) Görüntüle > Günlükler (Execution log) içindeki TOKEN'ı kopyala.
  * 4) Dağıt > Yeni dağıtım > Web uygulaması: "Ben" olarak çalıştır, Erişim: "Herkes". URL'yi kopyala.
- * 5) Tabloyu yenile → üstte "Fitness Koç" menüsü → "Telefona bağla (QR)" → telefondan uygulamada tara.
+ * 5) Tabloyu yenile → üstte "Fitness Koç" menüsü → "Telefona bağla" → telefonda "Kodu kameraya okut".
  */
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Fitness Koç')
-    .addItem('Telefona bağla (QR)', 'telefonaBagla')
+    .addItem('Telefona bağla', 'telefonaBagla')
     .addItem('Kurulum (ilk kez)', 'kurulum')
     .addToUi();
 }
@@ -23,21 +23,15 @@ function telefonaBagla() {
   if (!url) url = props.getProperty('WEBAPP_URL') || '';
   const t = HtmlService.createTemplate(
     '<div style="font-family:Arial,sans-serif;text-align:center">' +
-    '<p style="font-size:13px;margin:0 0 6px">Web uygulaması URL (Dağıt adımında kopyaladığın, <b>/exec</b> ile biter):</p>' +
-    '<input id="u" style="width:100%;padding:6px;font-size:12px" value="<?= url ?>" placeholder="https://script.google.com/macros/s/.../exec">' +
-    '<div id="q" style="display:inline-block;margin:12px auto"></div>' +
-    '<p style="font-size:12px;margin:4px 0">Telefonda: Fitness Koç → Ayarlar → <b>QR kodu tara</b></p>' +
-    '<textarea id="c" readonly style="width:100%;height:46px;font-size:11px"></textarea>' +
-    '<p style="font-size:11px;color:#666;margin:4px 0">Ya da bu metni kopyala (Mac ile iPhone aynı Apple hesabındaysa) ve telefonda "Panodan yapıştır" de.</p>' +
-    '<p style="font-size:11px;color:#b91c1c">Bu kod şifre gibidir, kimseyle paylaşma.</p></div>' +
-    '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>' +
-    '<script>var tok="<?= token ?>";function draw(){var u=document.getElementById("u").value.trim();var code="FKOC|"+u+"|"+tok;' +
-    'document.getElementById("c").value=code;var q=document.getElementById("q");q.innerHTML="";' +
-    'if(/\\/exec$/.test(u)){new QRCode(q,{text:code,width:220,height:220});google.script.run.urlKaydet(u)}else{q.innerHTML="<p style=\'color:#b91c1c;font-size:12px\'>Önce /exec ile biten URL\'yi yapıştır.</p>"}}' +
-    'document.getElementById("u").addEventListener("input",draw);draw();</script>');
+    '<p style="font-size:14px;margin:4px 0 10px">Telefonda: Fitness Koç → Ayarlar → <b>Kodu kameraya okut</b>, sonra telefonu bu koda tut.</p>' +
+    '<div style="font-family:Menlo,Consolas,monospace;font-size:22px;letter-spacing:1px;background:#fff;border:2px solid #222;border-radius:8px;padding:18px 8px;word-break:break-all"><?= token ?></div>' +
+    '<p style="font-size:12px;margin:16px 0 4px">Web uygulaması URL (Panodan yapıştır için kopyala):</p>' +
+    '<textarea readonly style="width:100%;height:54px;font-size:11px" onclick="this.select()"><?= url ?></textarea>' +
+    '<p style="font-size:11px;color:#666;margin:4px 0">Mac\'te kopyala → iPhone\'da Ayarlar → Panodan yapıştır (aynı Apple hesabı).</p>' +
+    '<p style="font-size:11px;color:#b91c1c">Bu kod şifre gibidir, kimseyle paylaşma.</p></div>');
   t.url = url;
   t.token = props.getProperty('TOKEN');
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(360).setHeight(520), 'Telefona bağla');
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(380).setHeight(420), 'Telefona bağla');
 }
 
 function urlKaydet(u) {
