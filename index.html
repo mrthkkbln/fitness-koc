@@ -149,7 +149,7 @@ let S;
 try{S=JSON.parse(localStorage.getItem('fk')||'null')}catch(e){S=null}
 if(!S)S={v:1,profile:null,wiz:defWiz(),plan:null,prog:{},logs:[],checkins:[],body:[],health:[],photos:[],cfg:{url:'',token:''},queue:[],draft:{},msg:null};
 ['logs','checkins','body','health','photos','queue'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
-S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.free=S.free||{};syncActs();
+S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};syncActs();
 let route=S.profile?'today':'wiz',wst=0,err='',ui={};
 const save=()=>{try{localStorage.setItem('fk',JSON.stringify(S))}catch(e){toast('Telefon hafızası dolu: Ayarlar > dışa aktar')}};
 
@@ -278,11 +278,11 @@ function ramp(id,t){if(t==null||!EX[id].eq.includes('bb')||t<40)return '';const 
 /* ---------- ortak sorgular ---------- */
 const todayISO=()=>iso();
 const ciToday=()=>S.checkins.filter(c=>c.date===todayISO());
-function bodySeries(field){const m={};
- S.body.forEach(b=>{if(num(b[field])!=null)m[b.date]=num(b[field])});
+function bodySeries(field){const out=[];
+ S.body.forEach(b=>{const v=num(b[field]);if(v!=null)out.push([b.date,v,b.ts||Date.parse(b.date+'T12:00:00')])});
  const hf=field==='kg'?'kilo':field==='fat'?'yag_orani':null;
- if(hf)S.health.forEach(h=>{const d=String(h.tarih||'').slice(0,10),v=num(h[hf]);if(d&&v!=null&&v>0)m[d]=v});
- return Object.keys(m).sort().map(d=>[d,m[d]])}
+ if(hf)S.health.forEach(x=>{const d=String(x.tarih||'').slice(0,10),v=num(x[hf]);if(d&&v!=null&&v>0)out.push([d,v,Date.parse(x.zaman)||Date.parse(d+'T12:00:00')])});
+ return out.sort((a,b)=>a[2]-b[2])}
 function lastPhotoDate(){const ds=[...S.photos.map(p=>p.date),...(S.photosRemote||[]).map(p=>String(p.tarih).slice(0,10))].sort();return ds[ds.length-1]||null}
 function healthToday(){const t=todayISO();const hs=S.health.filter(h=>String(h.tarih).slice(0,10)===t);return hs[hs.length-1]||null}
 
@@ -363,7 +363,7 @@ V.plan=()=>{const w=S.wiz,ti=dIdx();
 function chart(series,unit){if(series.length<2)return `<div class="xs">Grafik için en az 2 ölçüm gerekiyor.</div>`;
  const W=340,H=130,P=26,vs=series.map(s=>s[1]),mn=Math.min(...vs),mx=Math.max(...vs),rg=(mx-mn)||1;
  const pts=series.map((s,i)=>[P+i*(W-P-6)/(series.length-1),8+(H-30)*(1-(s[1]-mn)/rg)]);
- return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Grafik"><polyline fill="none" stroke="var(--ac)" stroke-width="2" points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/>${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="var(--ac)"/>`).join('')}<text x="0" y="14">${fmt(mx)}</text><text x="0" y="${H-22}">${fmt(mn)}</text><text x="${P}" y="${H-4}">${series[0][0].slice(5)}</text><text x="${W-40}" y="${H-4}">${series[series.length-1][0].slice(5)}</text></svg>`}
+ return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Grafik"><polyline fill="none" stroke="var(--ac)" stroke-width="2" points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/>${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="var(--ac)"/>`).join('')}<text x="0" y="14">${fmt(mx)}</text><text x="0" y="${H-22}">${fmt(mn)}</text><text x="${P}" y="${H-4}">${series[0][0].slice(8,10)+'.'+series[0][0].slice(5,7)}</text><text x="${W-40}" y="${H-4}">${series[series.length-1][0].slice(8,10)+'.'+series[series.length-1][0].slice(5,7)}</text></svg>`}
 V.prog=()=>{const t=todayISO(),ws=bodySeries('kg').filter(s=>daysBetween(s[0],t)<=120),fs=bodySeries('fat').filter(s=>daysBetween(s[0],t)<=120);
  let h=`<h1>İlerleme</h1><div class="card"><div class="row sp"><h2 style="margin:0">Kilo</h2><span class="mut">${ws.length?fmt(ws[ws.length-1][1])+' kg':''}${ws.length>1?` · ${(ws[ws.length-1][1]-ws[0][1]>0?'+':'')+fmt(ws[ws.length-1][1]-ws[0][1])} kg`:''}</span></div>${chart(ws)}</div>`;
  h+=`<div class="card"><div class="row sp"><h2 style="margin:0">Yağ oranı</h2><span class="mut">${fs.length?'%'+fmt(fs[fs.length-1][1]):''}</span></div>${chart(fs)}</div>`;
@@ -373,8 +373,11 @@ V.prog=()=>{const t=todayISO(),ws=bodySeries('kg').filter(s=>daysBetween(s[0],t)
  h+=`<div class="grid2">${[['Plana uyum (28 gün)',plan?'%'+Math.round(did/plan*100):'–'],['Ort. adım (son kayıtlar)',st.length?Math.round(st.reduce((a,b)=>a+b,0)/st.length).toLocaleString('tr-TR'):'–']].map(([k,v])=>`<div class="card" style="margin:0"><div class="xs">${k}</div><div style="font-size:22px;font-weight:600">${v}</div></div>`).join('')}</div>`;
  const ks=Object.keys(S.prog).filter(k=>EX[k]);
  h+=`<div class="card"><h2>Çalışma ağırlıkları</h2>${ks.length?ks.map(k=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span>${EX[k].n}</span><span>${fmt(S.prog[k].w)} kg${S.prog[k].est?' <span class="xs">tahmini</span>':''}</span></div>`).join(''):'<div class="xs">İlk antrenmandan sonra dolacak.</div>'}</div>`;
- const m=ui.m||{};
- h+=`<div class="card"><h2>Ölçüm ekle</h2><div class="grid2">${[['kg','Kilo (kg)'],['fat','Yağ %'],['bel','Bel (cm)'],['gogus','Göğüs (cm)'],['kol','Kol (cm)'],['kalca','Kalça (cm)']].map(([f,l])=>`<div><label class="l">${l}</label><input inputmode="decimal" data-m="${f}" value="${esc(m[f]||'')}"></div>`).join('')}</div><div class="err">${ui.merr||''}</div><button class="pr full" style="margin-top:10px" data-a="saveM">Kaydet</button></div>`;
+ const m=ui.m||{},ed=ui.editB;
+ h+=`<div class="card" id="mform"><h2>${ed?'Ölçümü düzelt':'Ölçüm ekle'}</h2><label class="l">Tarih</label><input type="date" data-m="date" value="${esc(m.date||todayISO())}"><div class="grid2">${[['kg','Kilo (kg)'],['fat','Yağ %'],['bel','Bel (cm)'],['gogus','Göğüs (cm)'],['kol','Kol (cm)'],['kalca','Kalça (cm)']].map(([f,l])=>`<div><label class="l">${l}</label><input inputmode="decimal" data-m="${f}" value="${esc(m[f]!=null?m[f]:'')}"></div>`).join('')}</div><div class="err">${ui.merr||''}</div><div class="row" style="margin-top:10px">${ed?'<button class="f1" data-a="editX">Vazgeç</button>':''}<button class="pr f1" data-a="saveM">${ed?'Düzeltmeyi kaydet':'Kaydet'}</button></div></div>`;
+ const hist=[...S.body].sort((a,b)=>(b.ts||0)-(a.ts||0));
+ if(hist.length)h+=`<div class="card"><h2>Ölçüm geçmişi</h2><div class="xs">Yanlış girdiysen düzelt ya da sil.</div>${hist.slice(0,40).map(b=>`<div class="ex"><div class="row sp"><div class="f1"><div style="font-weight:600">${b.date}</div><div class="sm mut">${[['kg',' kg'],['fat','% yağ'],['bel',' bel'],['gogus',' göğüs'],['kol',' kol'],['kalca',' kalça']].filter(([f])=>b[f]!=null).map(([f,u])=>(f==='fat'?'%'+fmt(b[f])+' yağ':fmt(b[f])+u)).join(' · ')||'–'}</div></div><button class="sm" data-a="editB" data-v="${b.id}">Düzelt</button><button class="sm" style="color:var(--er)" data-a="delB" data-v="${b.id}">${ui.delB===b.id?'Emin misin?':'Sil'}</button></div></div>`).join('')}<div class="xs" style="margin-top:8px">Apple Sağlık'tan gelen tartı verileri burada listelenmez; onları Sağlık uygulamasından düzeltebilirsin.</div></div>`;
+
  return h};
 
 V.foto=()=>{const lp=lastPhotoDate();
@@ -386,7 +389,7 @@ V.foto=()=>{const lp=lastPhotoDate();
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
-<div class="xs">Fitness Koç v1.4 · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
+<div class="xs">Fitness Koç v1.5 · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
 
 /* ---------- kurulum sihirbazı ---------- */
 const X=()=>AL.filter(a=>S.wiz.act[a].on&&a!=='Yürüyüş');
@@ -423,7 +426,7 @@ function finishWiz(){const w=S.wiz,r=planWeek(w);if(!r){err='Plan kurulamıyor.'
  const first=!S.profile,t=todayISO();
  S.plan=r;S.profile=Object.assign(S.profile||{},{start:(S.profile&&S.profile.start)||t,goal:w.goal,age:num(w.age),h:num(w.h),exp:w.exp,inj:w.inj});
  initProg(w);
- if(first){const b={date:t,kg:num(w.kg),fat:num(w.fat),bel:num(w.bel),gogus:num(w.gogus),kol:num(w.kol),kalca:num(w.kalca)};S.body.push(b);q('Body',[[t,b.kg,b.fat,b.bel,b.gogus,b.kol,b.kalca,'Kurulum']])}
+ if(first){const b={id:'b'+Date.now(),ts:Date.now(),date:t,kg:num(w.kg),fat:num(w.fat),bel:num(w.bel),gogus:num(w.gogus),kol:num(w.kol),kalca:num(w.kalca)};S.body.push(b);q('Body',[[t,b.kg,b.fat,b.bel,b.gogus,b.kol,b.kalca,'Kurulum']])}
  save();flush();route=first?'foto':'plan';err='';toast(first?'Plan hazır. Şimdi başlangıç fotoğrafları.':'Plan güncellendi.');render()}
 function saveWorkout(label,planned){const t=todayISO(),key=t+'|'+label,dr=S.draft[key]||{sets:{}},items=session(label,t);
  const rows=[];items.forEach(it=>(dr.sets[it.id]||[]).forEach((s,i)=>{if(s&&num(s.r)!=null&&(EX[it.id].bw||num(s.kg)!=null))rows.push([t,label,EX[it.id].n,i+1,it.lo+'-'+it.hi+(it.u==='sn'?' sn':''),num(s.r),num(s.kg),target(it.id)])}));
@@ -442,8 +445,15 @@ function saveAct(a){const t=todayISO(),dr=S.draft[t+'|'+a]||{};
  ui.extra=(ui.extra||[]).filter(x=>x!==a);save();toast(a+' kaydedildi');render()}
 function skip(a,reason){const t=todayISO();S.checkins.push({date:t,act:a,status:'gitmedim',note:reason});q('Checkins',[[t,a,'gitmedim','','','','',reason]]);ui.skip=null;
  S.msg={date:t,lines:[reason==='Sakatlık/ağrı'?'Ağrıyı zorlama. Ağrı sürerse bir uzmana görün; o bölgeyi çalıştıran hareketleri geçici olarak atlayabilirsin.':'Sorun değil. Bir sonraki planlı günde kaldığın yerden devam; kaçan seansı üst üste yığmıyoruz.']};save();render()}
-function saveMeasure(){const m=ui.m||{},t=todayISO(),b={date:t};let any=false;['kg','fat','bel','gogus','kol','kalca'].forEach(f=>{b[f]=num(m[f]);if(b[f]!=null)any=true});
- if(!any){ui.merr='En az bir değer gir.';return render()}ui.merr='';S.body.push(b);q('Body',[[t,b.kg,b.fat,b.bel,b.gogus,b.kol,b.kalca,'Uygulama']]);ui.m={};save();toast('Ölçüm kaydedildi');render()}
+function saveMeasure(){const m=ui.m||{},F=['kg','fat','bel','gogus','kol','kalca'],ed=ui.editB?S.body.find(b=>b.id===ui.editB):null;
+ const d=(m.date&&/^\d{4}-\d{2}-\d{2}$/.test(m.date))?m.date:(ed?ed.date:todayISO());let any=false;const vals={};F.forEach(f=>{vals[f]=num(m[f]);if(vals[f]!=null)any=true});
+ if(!any){ui.merr='En az bir değer gir.';return render()}ui.merr='';
+ if(ed){Object.assign(ed,vals,{date:d});q('Body',[[d,vals.kg,vals.fat,vals.bel,vals.gogus,vals.kol,vals.kalca,'Düzeltme']]);toast('Ölçüm düzeltildi')}
+ else{S.body.push(Object.assign({id:'b'+Date.now(),ts:Date.now(),date:d},vals));q('Body',[[d,vals.kg,vals.fat,vals.bel,vals.gogus,vals.kol,vals.kalca,'Uygulama']]);toast('Ölçüm kaydedildi')}
+ ui.m={};ui.editB=null;save();render()}
+function delMeasure(id){const b=S.body.find(x=>x.id===id);if(!b)return;if(ui.delB!==id){ui.delB=id;return render()}
+ S.body=S.body.filter(x=>x.id!==id);q('Body',[[b.date,'','','','','','','Silindi: '+[b.kg,b.fat].filter(v=>v!=null).join('/')]]);ui.delB=null;save();toast('Ölçüm silindi');render()}
+
 function compress(file,max){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',max>400?.82:.7))};img.onerror=rej;img.src=u})}
 async function addPhoto(file,angle){const t=todayISO();ui.perr='';
  try{const thumb=await compress(file,320),p={date:t,angle,thumb,url:''};S.photos.push(p);save();render();
@@ -515,6 +525,9 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'int':{const key=todayISO()+'|'+k;S.draft[key]=S.draft[key]||{};S.draft[key].int=v;save();break}
   case 'extra':ui.extra=ui.extra||[];tg(ui.extra,v);break;
   case 'saveM':return saveMeasure();
+  case 'editB':{const b=S.body.find(x=>x.id===v);if(b){ui.editB=v;ui.m={date:b.date};['kg','fat','bel','gogus','kol','kalca'].forEach(f=>{if(b[f]!=null)ui.m[f]=b[f]});render();const f=document.getElementById('mform');if(f)f.scrollIntoView({behavior:'smooth'});return}break}
+  case 'editX':ui.editB=null;ui.m={};break;
+  case 'delB':return delMeasure(v);
   case 'pull':pull().then(()=>{toast('Veriler güncellendi');render()}).catch(er=>toast('Alınamadı: '+er.message));return;
   case 'test':{const up=urlProblem();if(up){ui.serr=up;break}}ui.serr='Deneniyor…';render();fetch(S.cfg.url+'?action=ping&token='+encodeURIComponent(S.cfg.token)).then(readJson).then(j=>{ui.serr=j.ok?'Bağlantı tamam ✓':j.error==='token'?'TOKEN yanlış. Kodu tekrar okut ya da Apps Script günlüğündeki kodla karşılaştır.':'Hata: '+j.error;render()}).catch(er=>{ui.serr=netMsg(er);render()});return;
   case 'sync':flush().then(pull).then(()=>{ui.serr='Senkron tamam ✓';render()}).catch(er=>{ui.serr='Hata: '+er.message;render()});return;
