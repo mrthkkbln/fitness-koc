@@ -76,6 +76,8 @@ Test: kısayolu çalıştır → Sheets'te **Health** sekmesine satır düşmeli
 - **Hareket rotasyonu:** Yardımcı hareketler her blokta, ana hareketler 2 blokta bir değişir.
 - **İlerleme:** Hedef tekrar tutunca bir sonraki sefer +1 tekrar, üst sınırda +kilo ve tekrar baştan. İki kez hedefin altında kalırsan −%10; 10+ gün aradan sonra −%10.
 - **Deneyim / ortam / sakatlık:** Deneyim set sayısını ve hareket zorluğunu belirler. Ortam yalnızca ekipmana uygun hareketleri seçtirir. Ağrılı bölgeyi zorlayan hareketler yerine güvenli alternatif gelir, kaçınılmazsa ⚠ uyarısı çıkar.
+- **Koşu / kardiyo ile aynı gün:** Planlayıcı bacak gününü zorlu sporla aynı güne ve bir gün öncesine koymamaya çalışır; üst vücut + koşu aynı gün olabilir. Aynı gün olursa: önce ağırlık, sonra koşu (mümkünse arada 6 saat), bacak hareketlerinde −1 set, bitişteki eğimli yürüyüş kalkar.
+- **Planı önceden görme:** Bugün ekranında günün tüm hareketleri set × tekrar × kilo ile listelenir; Plan sekmesinde bu hafta ve gelecek haftanın her günü hareket hareket görünür. Harekete dokununca form videosu açılır.
 - **Kaçan antrenman:** Dünkü kayıt yoksa "Yaptın mı?" diye sorulur; yapmadıysan bugünün planı spora başlamadan düzenlenir (bugüne alma / birleştirme / erteleme / hastalıkta hafifletme).
 - Her harekette "Değiştir" ve "Bir daha önerme" var. Plandan farklı bir şey yaptıysan Bugün → "Plandan farklı bir şey mi yaptın?".
 
