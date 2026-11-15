@@ -22,21 +22,19 @@ function telefonaBagla() {
   if (url && !/\/exec$/.test(url)) url = props.getProperty('WEBAPP_URL') || '';
   if (!url) url = props.getProperty('WEBAPP_URL') || '';
   const t = HtmlService.createTemplate(
-    '<div style="font-family:Arial,sans-serif;text-align:center">' +
-    '<p style="font-size:14px;margin:4px 0 8px">Telefonda: Fitness Koç → Ayarlar → <b>Kodu kameraya okut</b>, telefonu bu pencereye tut.</p>' +
-    '<div id="q" style="display:inline-block;padding:10px;background:#fff"></div>' +
-    '<div style="font-family:Menlo,Consolas,monospace;font-size:18px;background:#fff;border:2px solid #222;border-radius:8px;padding:10px 6px;word-break:break-all;margin-top:6px"><?= token ?></div>' +
-    '<p style="font-size:11px;margin:12px 0 4px;color:#555">Web uygulaması URL (otomatik doldu; yanlışsa /exec ile biten adresi yapıştır):</p>' +
-    '<input id="u" style="width:100%;padding:6px;font-size:11px" value="<?= url ?>">' +
-    '<p style="font-size:11px;color:#b91c1c;margin:6px 0 0">Bu kod şifre gibidir, kimseyle paylaşma.</p></div>' +
+    '<style>body{margin:0;font-family:Arial,sans-serif;text-align:center}#q img,#q canvas{margin:0 auto}</style>' +
+    '<div id="q" style="padding:6px;background:#fff;display:flex;justify-content:center"></div>' +
+    '<p style="font-size:13px;margin:6px 0">Telefonda: Ayarlar → <b>Kodu kameraya okut</b> → telefonu bu kareye tut.</p>' +
+    '<input id="u" style="width:96%;padding:5px;font-size:11px" value="<?= url ?>" placeholder="/exec ile biten adresi buraya yapıştır">' +
+    '<p style="font-size:11px;color:#b91c1c;margin:6px 0 0">Bu kod şifre gibidir, kimseyle paylaşma.</p>' +
     '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>' +
     '<script>var tok="<?= token ?>";function draw(){var u=document.getElementById("u").value.replace(/\\s+/g,"");var q=document.getElementById("q");q.innerHTML="";' +
-    'if(/\\/exec$/.test(u)){new QRCode(q,{text:"FKOC|"+u+"|"+tok,width:200,height:200,correctLevel:QRCode.CorrectLevel.M});google.script.run.urlKaydet(u)}' +
-    'else{q.innerHTML="<p style=\\"color:#b91c1c;font-size:12px\\">Önce /exec ile biten adresi yapıştır.</p>"}}' +
+    'if(/\\/exec$/.test(u)){new QRCode(q,{text:"FKOC|"+u+"|"+tok,width:240,height:240,correctLevel:QRCode.CorrectLevel.M});google.script.run.urlKaydet(u)}' +
+    'else{q.innerHTML="<p style=\\"color:#b91c1c;font-size:13px;padding:40px 10px\\">Aşağıdaki kutuya /exec ile biten adresi yapıştır, kare kod burada çıkacak.</p>"}}' +
     'document.getElementById("u").addEventListener("input",draw);draw();</script>');
   t.url = url;
   t.token = props.getProperty('TOKEN');
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(380).setHeight(560), 'Telefona bağla');
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(320).setHeight(400), 'Telefona bağla');
 }
 
 function urlKaydet(u) {
