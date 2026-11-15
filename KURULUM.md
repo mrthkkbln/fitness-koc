@@ -22,7 +22,7 @@ Toplam ~30 dk. Sırayla yap.
 ## 3. iPhone'a kur
 1. Adresi **Safari**'de aç → Paylaş → **Ana Ekrana Ekle**.
 2. Uygulamayı ana ekrandaki ikondan aç (bundan sonra hep oradan aç; Safari'deki kopya ayrı veri tutar).
-3. Kurulum sihirbazını doldur → plan oluşur → başlangıç fotoğraflarını çek.
+3. Kurulum sihirbazını doldur (isteğe bağlı vücut fotoğrafı ve hedef silüet dahil) → plan oluşur.
 4. **Ayarlar** sekmesi → kodu kameraya okut (aşağıda) → **Bağlantıyı test et** → "Bağlantı tamam ✓".
 
 ### Telefona bağlama (hiçbir şey yazmadan)
@@ -65,14 +65,19 @@ Test: kısayolu çalıştır → Sheets'te **Health** sekmesine satır düşmeli
 - Her kullanıcı kendi Sheets kopyasını kurar (çok kullanıcılı sunucu sonraki aşama).
 
 ## Program nasıl kişiselleşiyor
-- Hedef → tekrar aralıkları, dinlenme ve soğumadaki eğimli yürüyüş süresi.
-- Deneyim → set sayısı ve hareket zorluğu (yeni başlayana barbell squat/deadlift yerine makine/dambıl).
-- Ortam → sadece ekipmanına uygun hareketler.
-- Ağrı/sakatlık bölgeleri → o bölgeyi zorlayan hareketler yerine güvenli alternatifler; kaçınılmazsa ⚠ uyarısıyla.
-- Öncelikli bölgeler → ekstra set ve hareket.
-- Seans süresi → izolasyon hareketleri süreye sığana kadar kırpılır.
-- 5 haftalık bloklar: Giriş → Birikim → Birikim+ → Zirve → Toparlanma (deload). Her blokta yardımcı hareketler, 2 blokta bir ana hareketler yenilenir.
-- Her harekette "Değiştir" (alternatifler) ve "Bir daha önerme" var. Plandan farklı bir şey yaptıysan Bugün → "Farklı bir antrenman mı yaptın?" (başka gün, sadece core ya da serbest seçim).
+- **Kurulum sırası:** haftada kaç gün → hangi günler → saatler → aktiviteler → gün bazında neler yapılabilir → aynı gün olmayanlar → başlangıç bilgileri (cinsiyet dahil) → vücut fotoğrafı (isteğe bağlı) → şu anki ve hedef silüet → ortam → ağrı/sakatlık → öncelikli bölgeler → seans süresi → ölçüler → mevcut ağırlıklar.
+- **Hedef:** Hedef silüetten otomatik çıkar (yağ yakımı / kas / ikisi) ve öncelikli bölgeler önerilir; istersen elle seçersin. Silüeti sonradan değiştirirsen plan kendiliğinden güncellenir.
+- **Bölge bölge split:** 4+ ağırlık günü → Alt A / Üst A / Alt B / Üst B; 3 ve altı → Tüm vücut A/B/C. Her günün ana hareket iskeleti sabittir (squat, deadlift, bench, row, press, pulldown…).
+- **Haftalık kas hacmi:** Her kasın haftalık set hedefi var. Büyük kaslarda: yeni 8, <1 yıl 10, 1–3 yıl 12, 3+ yıl 14 set. Yağ yakımında −2, kondisyonda −4; biceps/triceps −2, arka omuz/baldır/karın −4. Öncelikli bölge +4 (en fazla 22).
+- **Yardımcı hareketler:** Ana hareketlerin her kasa verdiği iş hesaplanır (ör. bench: göğüs 1, triceps 0,5 set). Haftalık hedefin gerisinde kalan kaslara izolasyon eklenir. Öncelikli bölgeye her uygun günde en az bir doğrudan hareket konur. A ve B günlerinde farklı yardımcı hareketler seçilir.
+- **Seans süresi:** Hacim süreye sığmazsa önce yardımcı hareketlerin setleri 2'ye iner, sonra öncelikli olmayan yardımcılar çıkar. Plan → "Haftalık kas hacmi" kartı her kas için yapılan/hedef seti gösterir; süre yetmiyorsa uyarır.
+- **5 haftalık bloklar:** Giriş → Birikim → Birikim+ → Zirve → Toparlanma. Hacim haftalara göre hedefin %80 → %90 → %100 → %110 → %50'si.
+- **Bloklar arası tekrar periyotları:** Kas → Güç + kas → Yoğun/pump döngüsü (yağ yakımı ve kondisyonda: Kas → Yoğun → Güç + kas → Yoğun). Örnek, yağ yakımı + kas hedefinde: ana hareketler 8–12 → 6–10 → 10–15; yardımcılar 12–15 → 10–12 → 15–20. Blok değişince çalışma ağırlıkları yeni tekrar aralığına göre otomatik ayarlanır.
+- **Hareket rotasyonu:** Yardımcı hareketler her blokta, ana hareketler 2 blokta bir değişir.
+- **İlerleme:** Hedef tekrar tutunca bir sonraki sefer +1 tekrar, üst sınırda +kilo ve tekrar baştan. İki kez hedefin altında kalırsan −%10; 10+ gün aradan sonra −%10.
+- **Deneyim / ortam / sakatlık:** Deneyim set sayısını ve hareket zorluğunu belirler. Ortam yalnızca ekipmana uygun hareketleri seçtirir. Ağrılı bölgeyi zorlayan hareketler yerine güvenli alternatif gelir, kaçınılmazsa ⚠ uyarısı çıkar.
+- **Kaçan antrenman:** Dünkü kayıt yoksa "Yaptın mı?" diye sorulur; yapmadıysan bugünün planı spora başlamadan düzenlenir (bugüne alma / birleştirme / erteleme / hastalıkta hafifletme).
+- Her harekette "Değiştir" ve "Bir daha önerme" var. Plandan farklı bir şey yaptıysan Bugün → "Plandan farklı bir şey mi yaptın?".
 
 ## Hareket videoları
-~50 hareketin her biri tek bir videoya bağlı (çoğu Jeff Nippard teknik serisi; ayrıca Squat University, Bret Contreras, Physique Development, Colossus Fitness, Athlean-X). Değiştirmek için `index.html` içindeki `LIBRAW` listesinde ikinci alana YouTube video ID'sini yaz.
+151 hareketin her biri tek bir videoya bağlı. Kanal önceliği: Renaissance Periodization → Jeff Nippard → ATHLEAN-X → ScottHermanFitness; bunlarda yoksa başka popüler bir kanal. Değiştirmek için `index.html` içindeki `LIBRAW` listesinde ikinci alana YouTube video ID'sini yaz.
