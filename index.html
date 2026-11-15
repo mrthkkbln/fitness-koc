@@ -56,6 +56,7 @@ svg text{fill:var(--tx3);font-size:11px}
 <nav id="nav"></nav>
 <script>
 'use strict';
+const APP_V='1.6';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -389,7 +390,7 @@ V.foto=()=>{const lp=lastPhotoDate();
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
-<div class="xs">Fitness Koç v1.5 · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
+<div class="xs">Fitness Koç v${APP_V} · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
 
 /* ---------- kurulum sihirbazı ---------- */
 const X=()=>AL.filter(a=>S.wiz.act[a].on&&a!=='Yürüyüş');
@@ -561,6 +562,8 @@ render();
 window.addEventListener('online',flush);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){flush();if(S.profile)pull().then(render).catch(()=>{})}});
 flush();if(S.profile)pull().then(render).catch(()=>{});
+function checkUpdate(){fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(v=>{v=v.trim();if(v&&v!==APP_V&&!document.getElementById('upd')){const b=document.createElement('div');b.id='upd';b.style.cssText='position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));background:#0f766e;color:#fff;border-radius:14px;padding:12px 14px;z-index:99;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.innerHTML='<span style="flex:1;font-weight:600">Yeni sürüm hazır ('+v+')</span><button style="min-height:40px;background:#fff;color:#0f766e;border:none">Güncelle</button>';b.querySelector('button').onclick=()=>location.replace(location.pathname+'?u='+Date.now());document.body.appendChild(b)}}).catch(()=>{})}
+checkUpdate();document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 </script>
 </body>
 </html>
