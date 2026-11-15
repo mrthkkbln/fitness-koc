@@ -61,7 +61,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.13';
+const APP_V='1.14';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -366,7 +366,7 @@ function shaperHTML(wiz){const s=shapeS();
  <div style="margin-top:6px">${Object.keys(SHP[s.ed]).map(n=>ch((s[s.ed+'P']===n?'✓ ':'')+n,s[s.ed+'P']===n,'shp',s.ed,n)).join('')}</div>
  <div class="shw"><div class="shl"><div id="shsvg">${shSVG()}</div></div><div class="shr">${SHK.map(([k,l,a,b])=>`<div class="shk"><div class="row sp"><b class="sm">${l}</b><span class="xs">${a}–${b}</span></div><input type="range" min="0" max="100" step="1" data-sh="${k}" value="${s[s.ed][k]}" aria-label="${l}"></div>`).join('')}</div></div>
  <div id="shsum">${shSum()}</div>
- ${wiz?`<label class="l">Ana hedef (şekle göre seçildi, değiştirebilirsin)</label>${['Yağ yakımı','Kas kazanımı','Yağ yakımı + kas','Kondisyon'].map(g=>ch(g,S.wiz.goal===g,'goal','',g)).join('')}`:`<button class="pr full" style="margin-top:12px" data-a="shApply">Planımı bu hedefe göre kur</button>`}`}
+ <label class="l">Ana hedef ${S.wiz.goalLock?'(elle seçildi · <a href="#" data-a="goalAuto">şekle göre seç</a>)':'(şekle göre seçildi)'}</label>${['Yağ yakımı','Kas kazanımı','Yağ yakımı + kas','Kondisyon'].map(g=>ch(g,S.wiz.goal===g,'goal','',g)).join('')}${wiz?'':`<div class="xs" style="margin-top:6px">Silüeti değiştirdikçe hedefin, öncelikli bölgelerin ve antrenmanların otomatik güncellenir.</div>`}`}
 const lastKg=()=>{const s=bodySeries('kg');return s.length?s[s.length-1][1]:num(S.wiz.kg)};
 function lastFat(){const c=[],sc=S.scans[S.scans.length-1],s=bodySeries('fat');if(sc)c.push([sc.ts||0,sc.bf]);if(s.length)c.push([s[s.length-1][2],s[s.length-1][1]]);return c.length?c.sort((a,b)=>b[0]-a[0])[0][1]:num(S.wiz.fat)}
 function roadmap(){const s=shapeS(),K=S.wiz.sex==='Kadın',kg=lastKg();if(!kg)return null;
@@ -457,7 +457,7 @@ function scanHist(){if(!S.scans.length)return '';const a=S.scans[0],b=S.scans[S.
 const V={};
 function setupSteps(){return [
  ['Bağlantı',!urlProblem(),'set','Ayarlar → Kodu kameraya okut'],
- ['Vücut analizi ve hedef',S.scans.length>0||S.photos.length>0||!!(S.shape&&S.shape.goalSet),'foto','Vücut → fotoğraf analizi, hedef silüet'],
+ ['Vücut ve hedef',S.scans.length>0||!!(S.shape&&(S.shape.goalSet||S.shape.src)),'foto','Vücut → fotoğraf analizi, hedef silüet'],
  ['Başlangıç kilosu',bodySeries('kg').length>0,'prog','İlerleme → Ölçüm ekle'],
  ['İlk antrenman',S.logs.length>0,'today','Aşağıdaki "Başla" düğmesiyle']]}
 V.today=()=>{
@@ -711,7 +711,7 @@ const app=document.getElementById('app');
 app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.dataset.a,k=t.dataset.k,v=t.dataset.v,w=S.wiz;
  if(t.tagName==='A'&&t.getAttribute('href')==='#')e.preventDefault();
  switch(a){
-  case 'goal':w.goal=v;w.goalLock=1;break;case 'sex':w.sex=v;break;case 'we':w.we=v;break;case 'exp':w.exp=v;break;
+  case 'goal':w.goal=v;w.goalLock=1;if(route!=='wiz'){save();flush();toast('Hedef: '+v)}break;case 'goalAuto':{w.goalLock=0;const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio;save();flush();toast('Hedef şekle göre seçildi');break}case 'sex':w.sex=v;break;case 'we':w.we=v;break;case 'exp':w.exp=v;break;
   case 'inc':if(k==='cnt')w.cnt=Math.max(1,Math.min(7,w.cnt+ +v));else w.act[k].n=Math.max(1,Math.min(7,w.act[k].n+ +v));break;
   case 'addc':{const el=document.getElementById('cust'),nm=(el&&el.value||'').trim().replace(/[|<>]/g,'');if(!nm)break;if(!AL.includes(nm))w.custom.push(nm);syncActs();w.act[nm].on=1;save();break}
   case 'td':tg(w.td,+v);break;case 'act':w.act[v].on=w.act[v].on?0:1;break;case 'dm':tg(w.act[k].d,+v);break;case 'no':tg(w.no,v);break;
@@ -738,11 +738,11 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'undoRev':undoRev(v);save();toast('Plan eski haline döndü');break;
   case 'didY':{const r=S.rev[v];if(!r)break;undoRev(v);const act='Ağırlık · '+r.missed;S.checkins=S.checkins.filter(c=>!(c.date===r.from&&c.act===act&&c.status==='gitmedim'));save();ui.open=r.missed;ui.openP=act;ui.openD=r.from;ui.quick=1;ui.alt=null;window.scrollTo(0,0);break}
   case 'shv':shapeS().view=v;save();break;case 'she':shapeS().ed=v;save();break;
-  case 'shp':{const sh=shapeS();if(k==='now'){sh.now=Object.assign(SH0(),SHP.now[v]);sh.src='manual';sh.nowP=v;autoGoal()}else{sh.goal=shAdd(sh.now,SHP.goal[v]);sh.goalSet=1;sh.goalP=v}if(route==='wiz'&&!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}save();break}
+  case 'shp':{const sh=shapeS();if(route!=='wiz')setTimeout(()=>{flush();toast('Planın yeni hedefe göre güncellendi')},0);if(k==='now'){sh.now=Object.assign(SH0(),SHP.now[v]);sh.src='manual';sh.nowP=v;autoGoal()}else{sh.goal=shAdd(sh.now,SHP.goal[v]);sh.goalSet=1;sh.goalP=v}if(!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}save();break}
   case 'shApply':{const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio;save();flush();S.msg={date:todayISO(),lines:[`Hedefin: ${dv.goal}.`+(dv.prio.length?` Öncelikli bölgeler: ${dv.prio.join(', ')} (ekstra set ve hareket).`:''),'Antrenmanların bundan sonra buna göre kuruluyor.']};toast('Plan hedefe göre güncellendi');break}
   case 'scanGo':{const hcm=num(w.h)||(S.profile&&S.profile.h);if(!hcm){ui.scmsg='Önce boyunu yaz.';break}
    try{const r=measureAll(scanBuf,w.sex,hcm);r.id='s'+Date.now();r.ts=Date.now();r.sil={};SCV.forEach(([x])=>{if(scanBuf[x]&&scanBuf[x].ok)r.sil[x]=scanBuf[x].sil});
-    S.scans.push(r);const sh=shapeS();sh.now=r.shape;sh.src='photo';sh.nowP=null;sh.ed='now';autoGoal();if(route==='wiz'&&!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}scanRes=r;scanBuf={};ui.scmsg='Analiz tamam ✓';save()}
+    S.scans.push(r);const sh=shapeS();sh.now=r.shape;sh.src='photo';sh.nowP=null;sh.ed='now';autoGoal();if(!w.goalLock){const dv=shDerive();w.goal=dv.goal;w.prio=dv.prio}scanRes=r;scanBuf={};ui.scmsg='Analiz tamam ✓';save()}
    catch(er){ui.scmsg='Hesaplanamadı: '+er.message}break}
   case 'scanSave':{const r=scanRes;if(!r)break;const R1=x=>Math.round(x*10)/10,b={id:'b'+Date.now(),ts:Date.now(),date:r.date,fat:R1(r.bf),bel:R1(r.waist),kalca:R1(r.hip)};S.body.push(b);q('Body',[[b.date,'',b.fat,b.bel,'','',b.kalca,'Foto analiz']]);scanRes=null;save();toast('Ölçümlere eklendi');break}
   case 'delScan':if(ui.delS!==v){ui.delS=v;break}S.scans=S.scans.filter(x=>x.id!==v);ui.delS=null;save();break;
@@ -778,10 +778,10 @@ app.addEventListener('input',e=>{const el=e.target,d=el.dataset;
   const b=document.getElementById('adh');if(b)b.textContent=adh(session(label,dt),dr);save();return}
  if(d.dr){const p=d.dr.split('|'),f=p.pop(),key=p.join('|');S.draft[key]=S.draft[key]||{sets:{},dur:'',rpe:'8'};S.draft[key][f]=el.value;save();return}
  if(d.m){ui.m=ui.m||{};ui.m[d.m]=el.value;return}
- if(d.sh){const sh=shapeS();sh[sh.ed][d.sh]=+el.value;if(sh[sh.ed+'P']){sh[sh.ed+'P']=null;document.querySelectorAll('[data-a=shp].on').forEach(x=>{x.classList.remove('on');x.textContent=x.textContent.replace('✓ ','')})}if(sh.ed==='now'){sh.src='manual';autoGoal()}else sh.goalSet=1;if(route==='wiz'&&!S.wiz.goalLock){const dv=shDerive();S.wiz.goal=dv.goal;S.wiz.prio=dv.prio}save();const g=document.getElementById('shsvg');if(g)g.innerHTML=shSVG();const u=document.getElementById('shsum');if(u)u.innerHTML=shSum();return}
+ if(d.sh){const sh=shapeS();sh[sh.ed][d.sh]=+el.value;if(sh[sh.ed+'P']){sh[sh.ed+'P']=null;document.querySelectorAll('[data-a=shp].on').forEach(x=>{x.classList.remove('on');x.textContent=x.textContent.replace('✓ ','')})}if(sh.ed==='now'){sh.src='manual';autoGoal()}else sh.goalSet=1;if(!S.wiz.goalLock){const dv=shDerive();S.wiz.goal=dv.goal;S.wiz.prio=dv.prio}save();const g=document.getElementById('shsvg');if(g)g.innerHTML=shSVG();const u=document.getElementById('shsum');if(u)u.innerHTML=shSum();return}
  if(d.cfg){S.cfg[d.cfg]=el.value.replace(/\s+/g,'');save();return}
  if(d.pf){S.profile=S.profile||{};S.profile[d.pf]=el.value;save();return}});
-app.addEventListener('change',e=>{const el=e.target;if(el.dataset.scan&&el.files&&el.files[0]){processScan(el.files[0],el.dataset.scan);el.value='';return}if('silonly' in el.dataset){S.cfg.silOnly=el.checked;save();return}if(el.dataset.sh&&route==='wiz'){render();return}if(el.dataset.ocr&&el.files&&el.files[0]){ocrToken(el.files[0]);el.value='';return}if(el.dataset.photo&&el.files&&el.files[0])addPhoto(el.files[0],el.dataset.photo)});
+app.addEventListener('change',e=>{const el=e.target;if(el.dataset.scan&&el.files&&el.files[0]){processScan(el.files[0],el.dataset.scan);el.value='';return}if('silonly' in el.dataset){S.cfg.silOnly=el.checked;save();return}if(el.dataset.sh){if(route!=='wiz'){flush();toast('Planın yeni hedefe göre güncellendi')}render();return}if(el.dataset.ocr&&el.files&&el.files[0]){ocrToken(el.files[0]);el.value='';return}if(el.dataset.photo&&el.files&&el.files[0])addPhoto(el.files[0],el.dataset.photo)});
 
 /* ---------- çizim ---------- */
 const IC={today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',plan:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',prog:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',foto:'<circle cx="12" cy="4.5" r="2.5"/><path d="M12 8v7M6 10.5l6 1 6-1M9 22l3-7 3 7"/>',set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
