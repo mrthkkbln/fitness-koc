@@ -56,7 +56,7 @@ svg text{fill:var(--tx3);font-size:11px}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.6';
+const APP_V='1.7';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -262,17 +262,17 @@ function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[];
  while(label!=='Serbest'&&est()>lim&&items.length>4){let j=-1;for(let k=items.length-1;k>=0;k--)if(items[k].role==='i'&&!items[k].pr){j=k;break}if(j<0)break;items.splice(j,1)}
  return items}
 function target(ex){const p=S.prog[ex];if(!p)return null;return phase().ph.dl?rnd(p.w*.9,EX[ex].r):p.w}
+function tReps(it){const p=S.prog[it.id];let r=p&&p.r!=null?p.r:it.lo;return Math.max(it.lo,Math.min(it.hi,r))}
 function progress(items,sets,rpe){const out=[],dl=phase().ph.dl;
- for(const it of items){const ex=it.id,e=EX[ex];if(e.t)continue;const ss=(sets[ex]||[]).filter(s=>s&&num(s.r)!=null&&(e.bw||num(s.kg)!=null));if(!ss.length)continue;
-  if(e.bw&&!ss.some(s=>num(s.kg))){const best=Math.max(...ss.map(s=>num(s.r)));out.push({ex,bw:1,tag:ss.every(s=>num(s.r)>=it.hi)?'artır':'aynı',best});continue}
-  const kg=Math.max(...ss.map(s=>num(s.kg)||0)),p=S.prog[ex]||{w:kg,fail:0};
-  if(dl){out.push({ex,kg,nw:p.w,tag:'aynı'});continue}
-  const allTop=ss.length>=it.sets&&ss.every(s=>num(s.r)>=it.hi),miss=ss.some(s=>num(s.r)<it.lo);
-  let nw=kg,tag='aynı';
-  if(allTop&&(rpe==null||rpe<=9)){nw=rnd(kg+e.inc,e.r);p.fail=0;tag='artır'}
-  else if(miss){p.fail=(p.fail||0)+1;if(p.fail>=2){nw=rnd(kg*.9,e.r);p.fail=0;tag='düşür'}}
+ for(const it of items){const ex=it.id,e=EX[ex],step=e.t?5:1;const ss=(sets[ex]||[]).filter(s=>s&&num(s.r)!=null&&(e.bw||num(s.kg)!=null));if(!ss.length)continue;
+  const tr=tReps(it),kg=e.bw&&!ss.some(s=>num(s.kg))?null:Math.max(...ss.map(s=>num(s.kg)||0)),p=S.prog[ex]||{w:kg,fail:0};
+  if(dl){out.push({ex,kg:p.w,nw:p.w,nr:tr,tag:'aynı'});continue}
+  const hit=ss.length>=it.sets&&ss.every(s=>num(s.r)>=tr),miss=ss.some(s=>num(s.r)<tr-2);
+  let nw=kg,nr=tr,tag='aynı';
+  if(hit&&(rpe==null||rpe<=9)){p.fail=0;if(tr+step<=it.hi||kg==null){nr=Math.min(it.hi,tr+step);tag=nr>tr?'tekrar':'aynı'}else{nw=rnd(kg+e.inc,e.r);nr=it.lo;tag='artır'}}
+  else if(miss){p.fail=(p.fail||0)+1;if(p.fail>=2&&kg!=null){nw=rnd(kg*.9,e.r);nr=it.lo;p.fail=0;tag='düşür'}}
   else p.fail=0;
-  p.w=nw;p.est=false;S.prog[ex]=p;out.push({ex,kg,nw,tag})}
+  if(kg!=null)p.w=nw;p.r=nr;p.est=false;S.prog[ex]=p;out.push({ex,kg,nw,nr,u:it.u,sets:it.sets,tag})}
  return out}
 function ramp(id,t){if(t==null||!EX[id].eq.includes('bb')||t<40)return '';const r=x=>fmt(rnd(x,2.5));return `Isınma setleri: bar×10 · ${r(t*.5)}×5 · ${r(t*.7)}×3 · ${r(t*.85)}×1`}
 
@@ -325,14 +325,14 @@ function workoutCard(label,planned){
  if(i===0){h+=`<h2>🔥 Isınma</h2><div class="mut">8–10 dakika. Sakatlanmamak ve güçlü başlamak için atlama.</div><div class="tip">1. 5 dk bisiklet, kürek ya da hızlı yürüyüş<br>2. Aşağıdaki videodaki hareketler</div>${upper?`<a class="full" href="${yt(WU.up)}" target="_blank" rel="noopener"><button class="full" style="margin-top:10px">▶ Üst vücut ısınma videosu (5 dk)</button></a>`:''}${lower?`<a href="${yt(WU.lo)}" target="_blank" rel="noopener"><button class="full" style="margin-top:10px">▶ Alt vücut ısınma videosu (5 dk)</button></a>`:''}${label==='Serbest'?'<div class="hr"></div>'+freePicker(t):''}`}
  else if(i<=items.length){const it=items[i-1],ex=it.id,e=EX[ex],tg=target(ex),db=e.eq[0]==='db';
   h+=`<div class="xs">Hareket ${i}/${items.length}${it.pr?' · <span class="badge">öncelikli bölge</span>':''}</div><h2 style="font-size:24px;margin-top:4px">${e.n}</h2>
-  <div class="grid2" style="margin-top:8px"><div style="background:var(--bg);border-radius:12px;padding:10px"><div class="xs">Hedef</div><div style="font-weight:700;font-size:18px">${it.sets} set × ${it.lo}–${it.hi} ${it.u}</div></div><div style="background:var(--bg);border-radius:12px;padding:10px"><div class="xs">Ağırlık</div><div style="font-weight:700;font-size:18px">${e.t?'—':e.bw&&tg==null?'Vücut ağ.':tg!=null?fmt(tg)+' kg':'Test et'}</div>${db&&tg!=null?'<div class="xs">tek dambıl</div>':''}</div></div>
-  ${tg==null&&!e.bw?'<div class="tip">🧪 İlk sefer: 2–3 tekrar daha yapabileceğin ağırlığı seç ve yaz. Uygulama sonraki seferi buna göre ayarlar.</div>':''}
+  <div class="grid2" style="margin-top:8px"><div style="background:var(--bg);border-radius:12px;padding:10px"><div class="xs">Hedef</div><div style="font-weight:700;font-size:18px">${it.sets} set × ${tReps(it)} ${it.u}</div></div><div style="background:var(--bg);border-radius:12px;padding:10px"><div class="xs">Ağırlık</div><div style="font-weight:700;font-size:18px">${e.t?'—':e.bw&&tg==null?'Vücut ağ.':tg!=null?fmt(tg)+' kg':'Test et'}</div>${db&&tg!=null?'<div class="xs">tek dambıl</div>':''}</div></div>
+  ${tg==null&&!e.bw?'<div class="tip">🧪 İlk sefer: ${tReps(it)} tekrarı düzgün formla yapabileceğin, son 2 tekrarın zorladığı bir ağırlık seç ve yaz. Sonraki seferi uygulama ayarlar.</div>':''}
   <div class="tip">💡 ${e.cue}<br><span class="xs">Setler arası dinlenme: ${it.rest}</span></div>
   ${it.caution.length?`<div class="tip" style="background:var(--wrbg);color:var(--wr)">⚠️ ${it.caution.map(r=>INJ.find(x=>x[0]===r)[1]).join(', ')} hassas: ağrısız açıklıkta, hafif başla. Ağrırsa dur ya da "Değiştir".</div>`:''}
   ${i===1&&ramp(ex,tg)?`<div class="tip">${ramp(ex,tg)}</div>`:''}
   <div class="row" style="margin-top:12px"><a class="f1" href="${yt(e.v)}" target="_blank" rel="noopener"><button class="full">▶ Nasıl yapılır</button></a><button data-a="swapO" data-v="${esc(it.key)}">Değiştir</button></div>${ui.swap===it.key?swapBox(it,label):''}
   <div class="hr"></div><div class="sm" style="font-weight:600">Her setten sonra yaptığını yaz:</div>`;
-  for(let k=0;k<it.sets;k++){const s=(dr.sets[ex]||[])[k]||{};h+=`<div class="set"><span style="width:56px;font-weight:600">Set ${k+1}</span><input class="n" inputmode="numeric" placeholder="${it.hi}" data-set="${key}|${ex}|${k}|r" value="${esc(s.r||'')}"><span class="xs">${it.u==='sn'?'sn':'tekrar'}</span>${e.t?'':`<input class="n" inputmode="decimal" placeholder="${tg!=null?tg:(e.bw?'+':'kg')}" data-set="${key}|${ex}|${k}|kg" value="${esc(s.kg!=null?s.kg:'')}"><span class="xs">kg</span>`}</div>`}}
+  for(let k=0;k<it.sets;k++){const s=(dr.sets[ex]||[])[k]||{};h+=`<div class="set"><span style="width:56px;font-weight:600">Set ${k+1}</span><input class="n" inputmode="numeric" placeholder="${tReps(it)}" data-set="${key}|${ex}|${k}|r" value="${esc(s.r||'')}"><span class="xs">${it.u==='sn'?'sn':'tekrar'}</span>${e.t?'':`<input class="n" inputmode="decimal" placeholder="${tg!=null?tg:(e.bw?'+':'kg')}" data-set="${key}|${ex}|${k}|kg" value="${esc(s.kg!=null?s.kg:'')}"><span class="xs">kg</span>`}</div>`}}
  else{const f=finisher();h+=`<h2>🧘 Soğuma ve bitiş</h2><div class="tip">${f[0]>=10?`🚶 ${f[0]}–${f[1]} dk eğimli yürüyüş (%8–12 eğim, 5–6 km/s): yağ yakımı için.`:'🚶 5 dk sakin yürüyüş.'}<br>Sonra 5 dk esneme.</div><a href="${yt(WU.cool)}" target="_blank" rel="noopener"><button class="full" style="margin-top:10px">▶ Esneme videosu</button></a>
   <div class="grid2"><div><label class="l">Toplam süre (dk)</label><input inputmode="numeric" data-dr="${key}|dur" value="${esc(dr.dur)}" placeholder="${S.wiz.sure}"></div><div><label class="l">Ne kadar zordu? (1–10)</label><input inputmode="numeric" data-dr="${key}|rpe" value="${esc(dr.rpe)}"></div></div>
   <div class="err">${ui.werr||''}</div><button class="pr full" style="margin-top:12px" data-a="saveW" data-k="${esc(planned||'')}" data-v="${esc(label)}">✓ Antrenmanı kaydet</button>${planned&&!isAlt?skipBox(planned):''}`}
@@ -356,8 +356,8 @@ V.plan=()=>{const w=S.wiz,ti=dIdx();
  let h=`<h1>Haftalık plan</h1><div class="card">${(S.plan||D.map(()=>[])).map((x,i)=>`<div class="row" style="padding:9px 0;border-top:${i?'.5px solid var(--bd)':'0'};${i===ti?'font-weight:600':''}"><span style="width:40px" class="${i===ti?'':'mut'}">${D[i]}</span><span class="f1 sm">${!w.td.includes(i)?'<span class="xs">Müsait değil</span>':x.length?x.map(esc).join(' + ')+(i<5?` <span class="xs">· ${esc(w.wk)}+</span>`:''):'Dinlenme'}</span></div>`).join('')}${w.act.Yürüyüş.on?'<div class="xs" style="margin-top:6px">Her gün yürüyüş: hedef 8–10 bin adım</div>':''}</div>`;
  const labs=[...new Set((S.plan||[]).flat().filter(x=>x.startsWith('Ağırlık')).map(x=>x.split(' · ')[1]))];
  const P=phase();
- h+=`<div class="card"><div class="row sp"><h2 style="margin:0">Gelişim planı</h2><span class="badge">Blok ${P.block+1} · Hafta ${P.wib+1}/5</span></div><div class="bar" style="margin:10px 0"><div style="width:${(P.wib+1)*20}%"></div></div>${PHASES.map((x,i)=>`<div class="row sm" style="padding:5px 0;${i===P.wib?'font-weight:600':'color:var(--tx2)'}"><span style="width:22px">${i+1}.</span><span class="f1">${x.n} <span class="xs">RPE ${x.rpe}</span><div class="xs">${x.txt}</div></span></div>`).join('')}<div class="xs" style="margin-top:6px">Her 5 haftalık blok sonunda yardımcı hareketler yenilenir, ana hareketler 2 blokta bir değişir. Böylece vücut alışmaz, ilerleme sürer.</div></div>`;
- labs.forEach(l=>{h+=`<div class="card"><h2>${l}</h2>${session(l).map(it=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span class="f1">${EX[it.id].n}${it.caution.length?' <span style="color:var(--wr)">⚠</span>':''} <a href="${yt(EX[it.id].v)}" target="_blank" rel="noopener">▶</a></span><span class="mut">${it.sets}×${it.lo}–${it.hi}${it.u==='sn'?' sn':''} · ${EX[it.id].t?'':target(it.id)!=null?fmt(target(it.id))+' kg':EX[it.id].bw?'vücut ağ.':'test'}</span></div>`).join('')}</div>`});
+ h+=`<div class="card"><div class="row sp"><h2 style="margin:0">Gelişim planı</h2><span class="badge">Blok ${P.block+1} · Hafta ${P.wib+1}/5</span></div><div class="bar" style="margin:10px 0"><div style="width:${(P.wib+1)*20}%"></div></div>${PHASES.map((x,i)=>`<div class="row sm" style="padding:5px 0;${i===P.wib?'font-weight:600':'color:var(--tx2)'}"><span style="width:22px">${i+1}.</span><span class="f1">${x.n} <span class="xs">RPE ${x.rpe}</span><div class="xs">${x.txt}</div></span></div>`).join('')}<div class="xs" style="margin-top:6px">Her seferinde hedefin net: örn. 3×8. Hepsini yaparsan bir dahaki sefer 3×9, 3×10… Üst sınıra gelince ağırlık artar ve tekrar baştan başlar. Her 5 haftalık blok sonunda yardımcı hareketler yenilenir, ana hareketler 2 blokta bir değişir. Böylece vücut alışmaz, ilerleme sürer.</div></div>`;
+ labs.forEach(l=>{h+=`<div class="card"><h2>${l}</h2>${session(l).map(it=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span class="f1">${EX[it.id].n}${it.caution.length?' <span style="color:var(--wr)">⚠</span>':''} <a href="${yt(EX[it.id].v)}" target="_blank" rel="noopener">▶</a></span><span class="mut">${it.sets}×${tReps(it)}${it.u==='sn'?' sn':''} · ${EX[it.id].t?'':target(it.id)!=null?fmt(target(it.id))+' kg':EX[it.id].bw?'vücut ağ.':'test'}</span></div>`).join('')}</div>`});
  h+=`<div class="card"><h2>Kuralların</h2><ul class="sm" style="padding-left:18px;margin:0">${rulesText(w).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="full" style="margin-top:10px" data-a="rewiz">Kuralları ve planı düzenle</button></div>`;
  return h};
 
@@ -430,13 +430,13 @@ function finishWiz(){const w=S.wiz,r=planWeek(w);if(!r){err='Plan kurulamıyor.'
  if(first){const b={id:'b'+Date.now(),ts:Date.now(),date:t,kg:num(w.kg),fat:num(w.fat),bel:num(w.bel),gogus:num(w.gogus),kol:num(w.kol),kalca:num(w.kalca)};S.body.push(b);q('Body',[[t,b.kg,b.fat,b.bel,b.gogus,b.kol,b.kalca,'Kurulum']])}
  save();flush();route=first?'foto':'plan';err='';toast(first?'Plan hazır. Şimdi başlangıç fotoğrafları.':'Plan güncellendi.');render()}
 function saveWorkout(label,planned){const t=todayISO(),key=t+'|'+label,dr=S.draft[key]||{sets:{}},items=session(label,t);
- const rows=[];items.forEach(it=>(dr.sets[it.id]||[]).forEach((s,i)=>{if(s&&num(s.r)!=null&&(EX[it.id].bw||num(s.kg)!=null))rows.push([t,label,EX[it.id].n,i+1,it.lo+'-'+it.hi+(it.u==='sn'?' sn':''),num(s.r),num(s.kg),target(it.id)])}));
+ const rows=[];items.forEach(it=>(dr.sets[it.id]||[]).forEach((s,i)=>{if(s&&num(s.r)!=null&&(EX[it.id].bw||num(s.kg)!=null))rows.push([t,label,EX[it.id].n,i+1,tReps(it)+(it.u==='sn'?' sn':''),num(s.r),num(s.kg),target(it.id)])}));
  if(!rows.length){ui.werr='En az bir set gir (tekrar + kg).';return render()}
  ui.werr='';const rpe=num(dr.rpe),res=progress(items,dr.sets,rpe),act=planned||('Ağırlık · '+label),note=planned&&planned!=='Ağırlık · '+label?'Yerine: '+label:'';
  S.logs.push({date:t,label,sets:dr.sets,dur:num(dr.dur),rpe});
  S.checkins.push({date:t,act,status:'yapıldı',dur:num(dr.dur),rpe,note});
  q('Sets',rows);q('Checkins',[[t,act,'yapıldı',num(dr.dur),'','',rpe,(note?note+' · ':'')+adh(items,dr)]]);
- const lines=res.map(o=>o.bw?`${o.tag==='artır'?'↑':'→'} ${EX[o.ex].n}: ${o.tag==='artır'?'tekrarları artır ya da ağırlık ekle':'hedef tekrara ulaşana kadar devam'}`:`${o.tag==='artır'?'↑':o.tag==='düşür'?'↓':'→'} ${EX[o.ex].n}: gelecek sefer ${fmt(o.nw)} kg`);
+ const lines=res.map(o=>`${o.tag==='artır'||o.tag==='tekrar'?'↑':o.tag==='düşür'?'↓':'→'} ${EX[o.ex].n}: gelecek sefer ${o.sets}×${o.nr} ${o.u==='sn'?'sn':'tekrar'}${o.nw!=null?' · '+fmt(o.nw)+' kg':''}`);
  lines.unshift(phase().ph.dl?'Toparlanma haftası kaydedildi. Ağırlıklar bu hafta sabit.':res.some(o=>o.tag==='artır')?'Güzel iş. Hedefi tutturduğun hareketlerde yükü artırıyoruz:':'Kaydedildi. Hedef tekrarları tutturana kadar aynı ağırlıkla devam:');
  if(res.some(o=>o.tag==='düşür'))lines.push('İki kez üst üste hedefin altında kalınca %10 hafifletiyoruz; tekniği sağlamlaştırıp tekrar çıkacağız.');
  S.msg={date:t,lines};delete S.draft[key];ui.alt=null;ui.open=null;save();render();window.scrollTo(0,0)}
