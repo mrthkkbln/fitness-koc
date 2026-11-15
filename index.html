@@ -195,14 +195,23 @@ function rulesText(w){const L=[`Haftada ${w.cnt} gün spor: ${w.td.map(i=>D[i]).
 
 /* ---------- senkron ---------- */
 let syncing=false;
-async function api(body){const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:S.cfg.token})});return r.json()}
+const URL_RE=/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec$/;
+function urlProblem(){const u=S.cfg.url||'';if(!u)return 'URL boş. Dağıt adımında kopyaladığın /exec ile biten adresi yapıştır.';
+ if(/\/dev$/.test(u))return 'Bu test (/dev) adresi. Dağıt > Dağıtımları yönet içindeki /exec ile biten adresi kullan.';
+ if(/script\.google\.com\/(home|d\/)/.test(u)||/\/edit/.test(u))return 'Bu Apps Script editörünün adresi. Dağıt > Dağıtımları yönet > Web uygulaması URL\'sini (/exec) kopyala.';
+ if(!URL_RE.test(u))return 'URL biçimi hatalı. https://script.google.com/macros/s/…/exec şeklinde olmalı.';if(!S.cfg.token)return 'TOKEN boş.';return ''}
+async function readJson(r){const t=await r.text();try{return JSON.parse(t)}catch(e){
+ if(/accounts\.google|ServiceLogin|signin/i.test(t))throw new Error('Google giriş sayfası döndü: Dağıt > Dağıtımları yönet > ✏️ > Erişimi olanlar: "Herkes" seç, Yeni sürüm olarak dağıt.');
+ if(/Script function not found|doGet|doPost/i.test(t))throw new Error('Apps Script kodu eksik veya eski. Code.gs\'yi yapıştır, kaydet, Dağıt > Dağıtımları yönet > ✏️ > Yeni sürüm.');
+ throw new Error('Sunucu JSON yerine sayfa döndürdü (HTTP '+r.status+'). URL\'nin /exec ile bittiğinden ve erişimin "Herkes" olduğundan emin ol.')}}
+async function api(body){const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:S.cfg.token})});return readJson(r)}
 function q(sheet,rows){if(rows.length){S.queue.push({action:'append',sheet,rows});save();flush()}}
 function stateJson(){return JSON.stringify({profile:S.profile,wiz:S.wiz,plan:S.plan,prog:S.prog})}
-async function flush(){if(syncing||!S.cfg.url||!S.cfg.token||!navigator.onLine)return;syncing=true;
+async function flush(){if(syncing||urlProblem()||!navigator.onLine)return;syncing=true;
  try{while(S.queue.length){const j=await api(S.queue[0]);if(!j.ok)throw new Error(j.error||'hata');S.queue.shift();save()}
   await api({action:'state',json:stateJson()})}catch(e){console.warn(e)}finally{syncing=false;updNav()}}
 async function pull(){if(!S.cfg.url||!S.cfg.token)return false;
- const r=await fetch(S.cfg.url+'?action=pull&token='+encodeURIComponent(S.cfg.token));const j=await r.json();if(!j.ok)throw new Error(j.error);
+ if(urlProblem())return false;const r=await fetch(S.cfg.url+'?action=pull&token='+encodeURIComponent(S.cfg.token));const j=await readJson(r);if(!j.ok)throw new Error(j.error);
  S.health=j.health||[];S.photosRemote=j.photos||[];
  if(!S.profile&&j.state){try{const st=JSON.parse(j.state);Object.assign(S,st);syncActs();route='today'}catch(e){}}
  save();return true}
@@ -485,7 +494,7 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'extra':ui.extra=ui.extra||[];tg(ui.extra,v);break;
   case 'saveM':return saveMeasure();
   case 'pull':pull().then(()=>{toast('Veriler güncellendi');render()}).catch(er=>toast('Alınamadı: '+er.message));return;
-  case 'test':ui.serr='Deneniyor…';render();fetch(S.cfg.url+'?action=ping&token='+encodeURIComponent(S.cfg.token)).then(r=>r.json()).then(j=>{ui.serr=j.ok?'Bağlantı tamam ✓':'Hata: '+j.error;render()}).catch(er=>{ui.serr='Hata: '+er.message;render()});return;
+  case 'test':{const up=urlProblem();if(up){ui.serr=up;break}}ui.serr='Deneniyor…';render();fetch(S.cfg.url+'?action=ping&token='+encodeURIComponent(S.cfg.token)).then(readJson).then(j=>{ui.serr=j.ok?'Bağlantı tamam ✓':j.error==='token'?'TOKEN yanlış. Kodu tekrar okut ya da Apps Script günlüğündeki kodla karşılaştır.':'Hata: '+j.error;render()}).catch(er=>{ui.serr='Hata: '+er.message;render()});return;
   case 'sync':flush().then(pull).then(()=>{ui.serr='Senkron tamam ✓';render()}).catch(er=>{ui.serr='Hata: '+er.message;render()});return;
   case 'export':{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='fitness-koc-'+todayISO()+'.json';l.click();setTimeout(()=>URL.revokeObjectURL(u),2000);return}
   case 'reset':if(!ui.reset){ui.reset=true;break}localStorage.removeItem('fk');location.reload();return;
@@ -498,7 +507,7 @@ app.addEventListener('input',e=>{const el=e.target,d=el.dataset;
   const b=document.getElementById('adh');if(b)b.textContent=adh(session(label,dt),dr);save();return}
  if(d.dr){const p=d.dr.split('|'),f=p.pop(),key=p.join('|');S.draft[key]=S.draft[key]||{sets:{},dur:'',rpe:'8'};S.draft[key][f]=el.value;save();return}
  if(d.m){ui.m=ui.m||{};ui.m[d.m]=el.value;return}
- if(d.cfg){S.cfg[d.cfg]=el.value.trim();save();return}
+ if(d.cfg){S.cfg[d.cfg]=el.value.replace(/\s+/g,'');save();return}
  if(d.pf){S.profile=S.profile||{};S.profile[d.pf]=el.value;save();return}});
 app.addEventListener('change',e=>{const el=e.target;if(el.dataset.ocr&&el.files&&el.files[0]){ocrToken(el.files[0]);el.value='';return}if(el.dataset.photo&&el.files&&el.files[0])addPhoto(el.files[0],el.dataset.photo)});
 
