@@ -25,10 +25,9 @@ Toplam ~30 dk. Sırayla yap.
 3. Kurulum sihirbazını doldur → plan oluşur → başlangıç fotoğraflarını çek.
 4. **Ayarlar** sekmesi → kodu kameraya okut (aşağıda) → **Bağlantıyı test et** → "Bağlantı tamam ✓".
 
-### Telefona bağlama (elle yazmadan)
-1. Bilgisayarda tabloyu yenile → üst menü **Fitness Koç → Telefona bağla**. Kod büyük harflerle görünür.
-2. Telefonda uygulama → **Ayarlar → 📷 Kodu kameraya okut** → telefonu ekrandaki koda tut, kendisi okur.
-3. URL için: penceredeki URL'yi Mac'te kopyala → iPhone'da **Panodan yapıştır** (aynı Apple hesabı). URL alanı doluysa sadece kod okunur.
+### Telefona bağlama (hiçbir şey yazmadan)
+1. Bilgisayarda tabloyu yenile → üst menü **Fitness Koç → Telefona bağla**.
+2. Telefonda uygulama → **Ayarlar → 📷 Kodu kameraya okut** → telefonu açılan pencereye tut. Adres ve kod birlikte okunur.
 
 ## 4. Mi tartı → Apple Health
 Zepp Life (Mi Fit) → Profil → **Apple Health** (Üçüncü taraf erişimi) → bağla, kilo ve vücut yağını yazmaya izin ver.
