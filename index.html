@@ -61,7 +61,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.15';
+const APP_V='1.16';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -233,16 +233,39 @@ const PRIO={'Omuz':['latdelt'],'Göğüs':['chestiso'],'Sırt':['vpull','latiso'
 const GROUPS={'Göğüs':['hpush','chestiso'],'Sırt':['hpull','vpull','latiso','trap'],'Omuz':['vpush','latdelt','reardelt'],'Kol':['bi','tri'],'Bacak':['squat','lunge','kneeext','kneeflex','calf','adduct'],'Kalça / arka bacak':['hinge','glute'],'Core':['core']};
 const UPPER=['hpush','hpull','vpush','vpull','latdelt','reardelt','chestiso','bi','tri','latiso','trap'];
 /* oturum şablonları: [kalıp, varyasyon, rol c=çok eklemli i=izolasyon] */
+/* ana hareket iskeleti (bölge bölge); yardımcı hareketler haftalık kas hacminden eklenir */
 const TPLS={
- 'Alt vücut A':[['squat',0,'c'],['hinge',1,'c'],['lunge',0,'c'],['kneeflex',0,'i'],['calf',0,'i'],['core',0,'i']],
- 'Üst vücut A':[['hpush',0,'c'],['hpull',0,'c'],['vpush',0,'c'],['vpull',0,'c'],['latdelt',0,'i'],['tri',0,'i']],
- 'Alt vücut B':[['hinge',0,'c'],['squat',1,'c'],['lunge',1,'c'],['kneeext',0,'i'],['calf',1,'i'],['core',1,'i']],
- 'Üst vücut B':[['hpush',1,'c'],['vpull',1,'c'],['hpull',1,'c'],['latdelt',1,'i'],['reardelt',0,'i'],['bi',0,'i']],
- 'Tüm vücut A':[['squat',0,'c'],['hpush',0,'c'],['hpull',0,'c'],['latdelt',0,'i'],['bi',0,'i']],
- 'Tüm vücut B':[['hinge',0,'c'],['vpush',0,'c'],['vpull',0,'c'],['kneeflex',0,'i'],['tri',0,'i']],
- 'Tüm vücut C':[['lunge',0,'c'],['hpush',1,'c'],['hpull',1,'c'],['reardelt',0,'i'],['core',0,'i']],
+ 'Alt vücut A':[['squat',0,'c'],['hinge',1,'c'],['lunge',0,'c']],
+ 'Üst vücut A':[['hpush',0,'c'],['hpull',0,'c'],['vpush',0,'c'],['vpull',0,'c']],
+ 'Alt vücut B':[['hinge',0,'c'],['squat',1,'c'],['lunge',1,'c']],
+ 'Üst vücut B':[['hpush',1,'c'],['vpull',1,'c'],['hpull',1,'c'],['vpush',1,'c']],
+ 'Tüm vücut A':[['squat',0,'c'],['hpush',0,'c'],['hpull',0,'c']],
+ 'Tüm vücut B':[['hinge',0,'c'],['vpush',0,'c'],['vpull',0,'c']],
+ 'Tüm vücut C':[['lunge',0,'c'],['hpush',1,'c'],['hpull',1,'c']],
  'Core':[['core',0,'i'],['core',1,'i'],['core',2,'i'],['core',3,'i'],['core',4,'i']]
 };
+/* hacim: kas grupları, kalıp → kas katkısı (set başına), izolasyon kalıbı */
+const MUS={chest:'Göğüs',back:'Sırt',side:'Yan omuz',rear:'Arka omuz',bi:'Biceps',tri:'Triceps',quad:'Ön bacak',ham:'Arka bacak',glute:'Kalça',calf:'Baldır',abs:'Karın',trap:'Trapez',adduct:'İç bacak'};
+const CON={hpush:{chest:1,tri:.5},vpush:{side:.5,tri:.5},hpull:{back:1,rear:.5,bi:.5},vpull:{back:1,bi:.5},latiso:{back:1},latdelt:{side:1},reardelt:{rear:1},chestiso:{chest:1},trap:{trap:1},bi:{bi:1},tri:{tri:1},squat:{quad:1,glute:.5},lunge:{quad:1,glute:.75},hinge:{ham:.75,glute:.75},kneeflex:{ham:1},kneeext:{quad:1},calf:{calf:1},glute:{glute:1},adduct:{adduct:1},core:{abs:1}};
+const ISO={chest:'chestiso',back:'latiso',side:'latdelt',rear:'reardelt',bi:'bi',tri:'tri',quad:'kneeext',ham:'kneeflex',glute:'glute',calf:'calf',abs:'core',trap:'trap',adduct:'adduct'};
+const UPM=['chest','back','side','rear','bi','tri','trap'],LOM=['quad','ham','glute','calf','adduct','abs'];
+const PMUS={'Omuz':['side','rear'],'Göğüs':['chest'],'Sırt':['back'],'Kollar':['bi','tri'],'Bacak (ön)':['quad'],'Kalça':['glute'],'Core':['abs']};
+const PHV=[.8,.9,1,1.1,.5];
+const musOf=l=>l==='Core'?['abs']:l.startsWith('Üst')?UPM:l.startsWith('Alt')?LOM:[...UPM,...LOM];
+function volTargets(){const w=S.wiz,b={'Yeni':8,'<1 yıl':10,'1–3 yıl':12,'3+ yıl':14}[w.exp]||12,a=w.goal==='Yağ yakımı'?-2:w.goal==='Kondisyon'?-4:0,T={};
+ ['chest','back','quad','glute','ham','side'].forEach(m=>T[m]=b+a);['bi','tri'].forEach(m=>T[m]=Math.max(4,b-2+a));['rear','calf','abs'].forEach(m=>T[m]=Math.max(4,b-4+a));T.trap=0;T.adduct=0;
+ const pm=w.prio.flatMap(p=>PMUS[p]||[]);pm.forEach(m=>T[m]=Math.min(22,Math.max(T[m]||0,6)+4));return {T,pm}}
+const weekLabels=()=>(S.plan||[]).flat().filter(p=>p.startsWith('Ağırlık')).map(p=>p.split(' · ')[1]);
+function volSlots(label,P){const {T,pm}=volTargets(),wl=weekLabels(),ms=musOf(label),mult=PHV[P.wib]==null?1:PHV[P.wib],w=S.wiz;
+ const base=TPLS[label].map(s=>[s[0],s[1],'c',undefined,label+'|'+s[0]+'|c']),cs=Math.max(2,3-(w.exp==='Yeni'?1:0)+(w.exp==='3+ yıl'?1:0)+(P.ph.d||0)),got={};
+ base.forEach(s=>{for(const m in CON[s[0]])got[m]=(got[m]||0)+CON[s[0]][m]*cs});
+ let need=ms.map(m=>{const k=wl.filter(l=>musOf(l).includes(m)).length||1;return [m,(T[m]||0)*mult/k-(got[m]||0)]}).filter(x=>x[1]>=1.5);pm.filter(m=>ms.includes(m)&&!need.some(x=>x[0]===m)&&(T[m]||0)>0).forEach(m=>need.push([m,2]));need.sort((a,b)=>(pm.includes(b[0])-pm.includes(a[0]))||b[1]-a[1]);
+ const iso=[];need.forEach(([m,r])=>{let left=r,n=0;while(left>=1.5&&n<2){const st=Math.max(2,Math.min(4,Math.round(Math.min(left,4))));iso.push([ISO[m],n+({B:1,C:2}[label.slice(-1)]||0),'i',undefined,label+'|'+ISO[m]+'|'+n,0,st,pm.includes(m)]);left-=st;n++}});
+ return base.concat(iso)}
+function weekVolume(){const ti=dIdx(),got={};(S.plan||[]).forEach((pl,i)=>{const d=addDays(iso(),i-ti);planFor(d).filter(p=>p.startsWith('Ağırlık')).forEach(p=>session(p.split(' · ')[1],d).forEach(it=>{const c=CON[it.pat]||{};for(const m in c)got[m]=(got[m]||0)+c[m]*it.sets}))});return got}
+/* eski şablon anahtarlarını (Etiket|sıra) yeni anahtarlara taşı */
+function migSwap(){if(S.swapV===2)return;const O={'Alt vücut A':'squat hinge lunge kneeflex calf core','Üst vücut A':'hpush hpull vpush vpull latdelt tri','Alt vücut B':'hinge squat lunge kneeext calf core','Üst vücut B':'hpush vpull hpull latdelt reardelt bi','Tüm vücut A':'squat hpush hpull latdelt bi','Tüm vücut B':'hinge vpush vpull kneeflex tri','Tüm vücut C':'lunge hpush hpull reardelt core'},C=['squat','hinge','lunge','hpush','hpull','vpush','vpull'],n={};
+ for(const k of Object.keys(S.swap||{})){const [l,i]=k.split('|');if(/^\d+$/.test(i||'')){const id=S.swap[k];delete S.swap[k];if(l==='Core'){S.swap['Core|core|'+i]=id;continue}const pt=(O[l]||'').split(' ')[+i];if(pt)S.swap[l+'|'+pt+'|'+(C.includes(pt)?'c':'0')]=id}}S.swapV=2}
 const UL=['Alt vücut A','Üst vücut A','Alt vücut B','Üst vücut B'],FB=['Tüm vücut A','Tüm vücut B','Tüm vücut C'];
 const PHASES=[{n:'Giriş',rpe:'7',d:-1,txt:'Tekniği otur, ağırlıkları test et. Setleri 3 tekrar yedekte bitir.'},{n:'Birikim',rpe:'8',d:0,txt:'Hedef tekrarları tuttur, 2 tekrar yedekte bitir.'},{n:'Birikim+',rpe:'8',d:0,p:1,txt:'Öncelikli bölgelere +1 set. Tekrar ve kilo artır.'},{n:'Zirve',rpe:'9',d:0,txt:'En zorlu hafta: setleri 1 tekrar yedekte bitir.'},{n:'Toparlanma (deload)',rpe:'6',dl:1,txt:'Setler yarıya, ağırlık %10 hafif. Vücut toparlanır, sonraki blokta daha güçlü dönersin.'}];
 
@@ -254,9 +277,10 @@ let S;
 try{S=JSON.parse(localStorage.getItem('fk')||'null')}catch(e){S=null}
 if(!S)S={v:1,profile:null,wiz:defWiz(),plan:null,prog:{},logs:[],checkins:[],body:[],health:[],photos:[],cfg:{url:'',token:''},queue:[],draft:{},msg:null};
 ['logs','checkins','body','health','photos','queue'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
-S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote','sex'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};S.scans=S.scans||[];S.rev=S.rev||{};S.mrg=S.mrg||{};S.light=S.light||{};S.ovr=S.ovr||{};delete S.makeup;syncActs();
+S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote','sex'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};S.scans=S.scans||[];S.swap=S.swap||{};S.rev=S.rev||{};S.mrg=S.mrg||{};S.light=S.light||{};S.ovr=S.ovr||{};delete S.makeup;syncActs();
 let route=S.profile?'today':'wiz',wst=0,err='',ui={};
 const save=()=>{try{localStorage.setItem('fk',JSON.stringify(S))}catch(e){toast('Telefon hafızası dolu: Ayarlar > dışa aktar')}};
+migSwap();save();
 
 /* ---------- yardımcılar ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -351,22 +375,24 @@ function scheme(id,role){const g=S.wiz.goal,e=EX[id];
  return role==='c'?[8,12,'tekrar']:[10,15,'tekrar']}
 function finisher(){return {'Yağ yakımı':[15,20],'Yağ yakımı + kas':[10,15],'Kondisyon':[10,15]}[S.wiz.goal]||[5,10]}
 function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[],rv=date&&S.rev[date],mg=date&&S.mrg[date]&&S.mrg[date].to===label?S.mrg[date].add:null;let bump=0;
- const prioPats=w.prio.flatMap(p=>PRIO[p]||[]);
- let slots=(TPLS[label]||[]).map(s=>[...s]);
- if(label==='Serbest')slots=(S.free[date||iso()]||[]).map(id=>[EX[id].pat,0,['squat','hinge','lunge','hpush','vpush','hpull','vpull'].includes(EX[id].pat)?'c':'i',id]);
- if(TPLS[label]&&label!=='Core'){const upper=label.startsWith('Üst'),full=label.startsWith('Tüm');
-  prioPats.forEach(pt=>{const fits=full||pt==='core'||(upper?UPPER.includes(pt):!UPPER.includes(pt));if(fits&&!slots.some(s=>s[0]===pt))slots.push([pt,0,'i'])})}
- slots.forEach((s,i)=>{s[4]=label+'|'+i});
+ const prioPats=w.prio.flatMap(p=>PRIO[p]||[]);let slots;
+ if(label==='Serbest')slots=(S.free[date||iso()]||[]).map(id=>[EX[id].pat,0,['squat','hinge','lunge','hpush','vpush','hpull','vpull'].includes(EX[id].pat)?'c':'i',id,'Serbest|'+id]);
+ else if(label==='Core')slots=TPLS.Core.map((s,i)=>[s[0],s[1],s[2],undefined,'Core|core|'+i]);
+ else if(TPLS[label])slots=volSlots(label,P);else slots=[];
  if(mg&&TPLS[mg]&&TPLS[label]&&label!=='Core'){const have=slots.map(s=>s[0]),add=TPLS[mg].filter(s=>s[2]==='c'&&!have.includes(s[0])).slice(0,2);
   if(add.length){const at=slots.filter(s=>s[2]==='c').length;slots.splice(at,0,...add.map((s,j)=>[s[0],s[1],'c',undefined,'mk|'+mg+'|'+j,1]))}else bump=1}
- slots.forEach((s,i)=>{const key=s[4];let id=s[3]||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
-  const role=s[2],[lo,hi,u]=scheme(id,role);let sets=role==='c'?3:(w.goal==='Kondisyon'?2:3);
-  if(w.exp==='Yeni')sets--;if(w.exp==='3+ yıl'&&role==='c')sets++;sets+=P.ph.d||0;const pr=prioPats.includes(s[0]);if(pr)sets++;if(pr&&P.ph.p)sets++;if(bump&&role==='c')sets++;if(rv&&(rv.type==='light'||(rv.legL&&LEGP.includes(s[0]))))sets--;
+ slots.forEach((s,i)=>{const key=s[4];let id=s[3]||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)||used.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
+  const role=s[2],[lo,hi,u]=scheme(id,role);let sets,pr;
+  if(s[6]!=null){sets=s[6];pr=!!s[7];if(w.goal==='Kondisyon')sets=Math.min(sets,2)}
+  else{sets=role==='c'?3:(w.goal==='Kondisyon'?2:3);if(w.exp==='Yeni')sets--;if(w.exp==='3+ yıl'&&role==='c')sets++;sets+=P.ph.d||0;pr=prioPats.includes(s[0]);if(pr)sets++;if(pr&&P.ph.p)sets++}
+  if(bump&&role==='c')sets++;if(rv&&(rv.type==='light'||(rv.legL&&LEGP.includes(s[0]))))sets--;
   sets=Math.max(2,Math.min(5,sets));if(P.ph.dl)sets=2;
   items.push({id,slot:i,key,pat:s[0],role,sets,lo,hi,u,pr,caution:injHit(id),mk:!!s[5],rest:role==='c'?(w.goal==='Yağ yakımı'?'90 sn–2 dk':'2–3 dk'):(w.goal==='Yağ yakımı'?'45–60 sn':'60–90 sn')})});
  const lim=(num(w.sure)||60)+(dIdx(date?new Date(date+'T12:00:00'):new Date())>4?15:0);
- const est=()=>10+finisher()[0]+items.reduce((a,x)=>a+x.sets*(x.role==='c'?3.5:2.2),0);
- while(label!=='Serbest'&&est()>lim&&items.length>4){let j=-1;for(let k=items.length-1;k>=0;k--)if(items[k].role==='i'&&!items[k].pr){j=k;break}if(j<0)break;items.splice(j,1)}
+ const est=()=>8+finisher()[0]+items.reduce((a,x)=>a+x.sets*(x.role==='c'?3:1.8),0);
+ if(label!=='Serbest'){
+  while(est()>lim){let j=-1;for(let k=items.length-1;k>=0;k--)if(items[k].role==='i'&&!items[k].pr&&items[k].sets>2){j=k;break}if(j<0)break;items[j].sets--}
+  while(est()>lim&&items.length>4){let j=-1;for(let k=items.length-1;k>=0;k--)if(items[k].role==='i'&&!items[k].pr){j=k;break}if(j<0)break;items.splice(j,1)}}
  if(mg){let g=0;while(est()>lim&&g++<40){let j=-1,mx=2;items.forEach((x,q)=>{const v=x.sets+(x.mk?.5:0);if(!x.pr&&x.sets>2&&v>mx){mx=v;j=q}});if(j<0)break;items[j].sets--}
   while(est()>lim&&items.length>4){let j=-1;for(let q=items.length-1;q>=0;q--)if(!items[q].mk&&!items[q].pr){j=q;break}if(j<0)break;items.splice(j,1)}}
  return items}
@@ -405,6 +431,10 @@ function progress(items,sets,rpe){const out=[],dl=phase().ph.dl;
  return out}
 function ramp(id,t){if(t==null||!EX[id].eq.includes('bb')||t<40)return '';const r=x=>fmt(rnd(x,2.5));return `Isınma setleri: bar×10 · ${r(t*.5)}×5 · ${r(t*.7)}×3 · ${r(t*.85)}×1`}
 
+function volCard(){if(!S.plan)return '';const {T,pm}=volTargets(),P=phase(),mult=PHV[P.wib]==null?1:PHV[P.wib],got=weekVolume(),wl=weekLabels();
+ const ms=Object.keys(MUS).filter(m=>(T[m]||0)>0&&wl.some(l=>musOf(l).includes(m))||(got[m]||0)>=1);let low=0;
+ const rows=ms.map(m=>{const t=Math.round((T[m]||0)*mult),g=Math.round(got[m]||0),pc=t?Math.min(100,Math.round(g/t*100)):100;if(t&&g<t*.8)low++;return `<div style="margin-top:8px"><div class="row sp sm"><span>${MUS[m]}${pm.includes(m)?' <span class="badge">öncelik</span>':''}</span><span class="${t&&g<t*.8?'':'mut'}" style="${t&&g<t*.8?'color:var(--wr);font-weight:600':''}">${g} / ${t} set</span></div><div class="bar" style="margin-top:4px"><div style="width:${pc}%;${t&&g<t*.8?'background:var(--wr)':''}"></div></div></div>`}).join('');
+ return `<div class="card"><h2>Haftalık kas hacmi</h2><div class="xs">Her kas için haftalık set hedefi: deneyim, hedef ve öncelikli bölgelere göre. Bu hafta (${P.ph.n}) hedefin %${Math.round(mult*100)}'i. Ana hareketler sabit, yardımcı hareketler eksik kalan kaslara göre seçilir.</div>${rows}${low?`<div class="tip">Seans süresi (${S.wiz.sure} dk) yüzünden ${low} bölge hedefin altında. Süreyi ${(+S.wiz.sure||60)+15} dk yaparsan hedef hacme yaklaşır.</div>`:''}</div>`}
 /* ---------- ortak sorgular ---------- */
 const todayISO=()=>iso();
 const ciToday=()=>S.checkins.filter(c=>c.date===todayISO());
@@ -643,6 +673,7 @@ V.plan=()=>{const w=S.wiz,ti=dIdx();
  const labs=[...new Set((S.plan||[]).flat().filter(x=>x.startsWith('Ağırlık')).map(x=>x.split(' · ')[1]))];
  const P=phase();
  h+=`<div class="card"><div class="row sp"><h2 style="margin:0">Gelişim planı</h2><span class="badge">Blok ${P.block+1} · Hafta ${P.wib+1}/5</span></div><div class="bar" style="margin:10px 0"><div style="width:${(P.wib+1)*20}%"></div></div>${PHASES.map((x,i)=>`<div class="row sm" style="padding:5px 0;${i===P.wib?'font-weight:600':'color:var(--tx2)'}"><span style="width:22px">${i+1}.</span><span class="f1">${x.n} <span class="xs">RPE ${x.rpe}</span><div class="xs">${x.txt}</div></span></div>`).join('')}<div class="xs" style="margin-top:6px">Her seferinde hedefin net: örn. 3×8. Hepsini yaparsan bir dahaki sefer 3×9, 3×10… Üst sınıra gelince ağırlık artar ve tekrar baştan başlar. Her 5 haftalık blok sonunda yardımcı hareketler yenilenir, ana hareketler 2 blokta bir değişir. Böylece vücut alışmaz, ilerleme sürer.</div></div>`;
+ h+=volCard();
  labs.forEach(l=>{h+=`<div class="card"><h2>${l}</h2>${session(l).map(it=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span class="f1">${EX[it.id].n}${it.caution.length?' <span style="color:var(--wr)">⚠</span>':''} <a href="${yt(EX[it.id].v)}" target="_blank" rel="noopener">▶</a></span><span class="mut">${it.sets}×${tReps(it)}${it.u==='sn'?' sn':''} · ${EX[it.id].t?'':target(it.id)!=null?fmt(target(it.id))+' kg':EX[it.id].bw?'vücut ağ.':'test'}</span></div>`).join('')}</div>`});
  h+=`<div class="card"><h2>Kuralların</h2><ul class="sm" style="padding-left:18px;margin:0">${rulesText(w).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="full" style="margin-top:10px" data-a="rewiz">Kuralları ve planı düzenle</button></div>`;
  return h};
