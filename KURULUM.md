@@ -23,7 +23,13 @@ Toplam ~30 dk. Sırayla yap.
 1. Adresi **Safari**'de aç → Paylaş → **Ana Ekrana Ekle**.
 2. Uygulamayı ana ekrandaki ikondan aç (bundan sonra hep oradan aç; Safari'deki kopya ayrı veri tutar).
 3. Kurulum sihirbazını doldur → plan oluşur → başlangıç fotoğraflarını çek.
-4. **Ayarlar** sekmesi → URL ve TOKEN'ı yapıştır → **Bağlantıyı test et** → "Bağlantı tamam ✓".
+4. **Ayarlar** sekmesi → QR'ı tara (aşağıda) → **Bağlantıyı test et** → "Bağlantı tamam ✓".
+
+### Telefona bağlama (QR ile, elle yazmadan)
+1. Bilgisayarda tabloyu yenile → üst menüde **Fitness Koç → Telefona bağla (QR)**.
+2. Açılan pencerede URL kutusuna 1. bölüm 5. adımdaki `/exec` adresini yapıştır (genelde kendiliğinden dolar). QR belirir.
+3. Telefonda uygulama → **Ayarlar → 📷 QR kodu tara** → kameraya göster. Bitti.
+   Alternatif: penceredeki metni Mac'te kopyala, iPhone'da **Panodan yapıştır**'a bas (aynı Apple hesabı, Evrensel Pano).
 
 ## 4. Mi tartı → Apple Health
 Zepp Life (Mi Fit) → Profil → **Apple Health** (Üçüncü taraf erişimi) → bağla, kilo ve vücut yağını yazmaya izin ver.
@@ -60,5 +66,15 @@ Test: kısayolu çalıştır → Sheets'te **Health** sekmesine satır düşmeli
 - Android: Health Connect web'den okunamıyor; ileride küçük bir Android uygulaması ya da Strava/Garmin/Oura API'si ile eklenecek.
 - Her kullanıcı kendi Sheets kopyasını kurar (çok kullanıcılı sunucu sonraki aşama).
 
+## Program nasıl kişiselleşiyor
+- Hedef → tekrar aralıkları, dinlenme ve soğumadaki eğimli yürüyüş süresi.
+- Deneyim → set sayısı ve hareket zorluğu (yeni başlayana barbell squat/deadlift yerine makine/dambıl).
+- Ortam → sadece ekipmanına uygun hareketler.
+- Ağrı/sakatlık bölgeleri → o bölgeyi zorlayan hareketler yerine güvenli alternatifler; kaçınılmazsa ⚠ uyarısıyla.
+- Öncelikli bölgeler → ekstra set ve hareket.
+- Seans süresi → izolasyon hareketleri süreye sığana kadar kırpılır.
+- 5 haftalık bloklar: Giriş → Birikim → Birikim+ → Zirve → Toparlanma (deload). Her blokta yardımcı hareketler, 2 blokta bir ana hareketler yenilenir.
+- Her harekette "Değiştir" (alternatifler) ve "Bir daha önerme" var. Plandan farklı bir şey yaptıysan Bugün → "Farklı bir antrenman mı yaptın?" (başka gün, sadece core ya da serbest seçim).
+
 ## Hareket videoları
-Her hareket tek bir videoya bağlı (çoğu Jeff Nippard teknik serisi; Bulgarian split squat: Squat University; hip thrust: Bret Contreras). Değiştirmek istersen `index.html` içindeki `EX` listesindeki `v:` alanına YouTube video ID'sini yaz.
+~50 hareketin her biri tek bir videoya bağlı (çoğu Jeff Nippard teknik serisi; ayrıca Squat University, Bret Contreras, Physique Development, Colossus Fitness, Athlean-X). Değiştirmek için `index.html` içindeki `LIBRAW` listesinde ikinci alana YouTube video ID'sini yaz.
