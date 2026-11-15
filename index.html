@@ -371,7 +371,7 @@ V.foto=()=>{const lp=lastPhotoDate();
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
-<div class="xs">Fitness Koç v1 · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
+<div class="xs">Fitness Koç v1.3 · Veriler önce bu cihazda, sonra kendi Google Sheets'inde.</div>`;
 
 /* ---------- kurulum sihirbazı ---------- */
 const X=()=>AL.filter(a=>S.wiz.act[a].on&&a!=='Yürüyüş');
@@ -439,7 +439,7 @@ async function addPhoto(file,angle){const t=todayISO();ui.perr='';
 function applyCode(tx){tx=String(tx||'').trim();let url='',tok='';
  if(tx.startsWith('FKOC|')){const p=tx.split('|');url=p[1];tok=p[2]}
  else{const m=tx.match(/https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/);const t=tx.match(/\b[a-f0-9]{32}\b/);url=m?m[0]:'';tok=t?t[0]:''}
- if(!url||!tok)return false;S.cfg.url=url.trim();S.cfg.token=tok.trim();save();ui.serr='Kod alındı ✓ Şimdi "Bağlantıyı test et".';flush();return true}
+ if(!url&&!tok)return false;if(url)S.cfg.url=url.trim();if(tok)S.cfg.token=tok.trim();save();ui.serr=(url&&tok?'Adres ve kod alındı ✓':url?'Adres alındı ✓':'Kod alındı ✓')+' Şimdi "Bağlantıyı test et".';flush();return true}
 /* ---------- kamerayla token okuma (OCR) ---------- */
 function hexToken(text){const ws=String(text||'').toLowerCase().replace(/[^0-9a-f\s]/g,'').split(/\s+/).filter(Boolean);
  const ex=ws.find(w=>w.length===32);if(ex)return {tok:ex,sure:true};
