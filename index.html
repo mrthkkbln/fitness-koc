@@ -50,6 +50,7 @@ nav a{flex:1;text-align:center;font-size:12px;font-weight:500;color:var(--tx3);p
 svg text{fill:var(--tx3);font-size:11px}
 .hide{display:none}
 .shw{display:flex;gap:10px;align-items:flex-start;margin-top:8px}.shl{flex:0 0 40%;position:sticky;top:calc(8px + env(safe-area-inset-top));align-self:flex-start}.shr{flex:1;min-width:0}.shk{margin-bottom:4px}.shk .xs{font-size:12px}.shl .xs{font-size:11px}
+.fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));width:56px;height:56px;min-height:56px;border-radius:50%;background:var(--ac);color:#fff;border:0;font-size:26px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:8;padding:0}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 input[type=range]{min-height:34px;padding:0;border:0;background:transparent;accent-color:var(--ac)}
 button:disabled{opacity:.45}
@@ -61,7 +62,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.24';
+const APP_V='1.25';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -897,6 +898,7 @@ async function ocrToken(file){ui.serr='Okunuyor… ilk seferde 10–20 sn süreb
 
 /* ---------- olaylar ---------- */
 const app=document.getElementById('app');
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='kq'){e.preventDefault();kAsk(e.target.value)}});
 app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.dataset.a,k=t.dataset.k,v=t.dataset.v,w=S.wiz;
  if(t.tagName==='A'&&t.getAttribute('href')==='#')e.preventDefault();
  switch(a){
@@ -947,6 +949,10 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'cyc':{const d=ui.openD||todayISO(),lab=k.split('|')[0],items=session(lab,d),cur=(items.find(x=>x.key===k)||{}).id;if(!cur)break;const used=items.map(x=>x.id).filter(x=>x!==cur),pat=EX[cur].pat;
    const L=LIB.filter(id=>EX[id].pat===pat&&eqOk(id)&&!S.ban.includes(id)).sort((a,b)=>injHit(a).length-injHit(b).length);let nx=null;const st=L.indexOf(cur);for(let i=1;i<=L.length;i++){const c=L[(st+i)%L.length];if(!used.includes(c)){nx=c;break}}if(!nx||nx===cur){toast('Muadil hareket yok');break}
    S.tswap[d+'|'+k]=nx;const src=[cur,...L].find(id=>S.prog[id]&&S.prog[id].w!=null&&!S.prog[id].est&&!EX[id].bw)||cur;seedEst(src,nx,items.find(x=>x.key===k));save();toast('🔄 '+EX[nx].n);break}
+  case 'kAsk':return kAsk(v);
+  case 'kSend':{const i=document.getElementById('kq');return kAsk(i&&i.value)}
+  case 'kClr':S.chat=[];save();break;
+  case 'injAdd':if(!w.inj.includes(v))w.inj.push(v);save();flush();toast('Eklendi: plan bu bölgeyi zorlamayan hareketleri seçecek');break;
   case 'tswap':S.tswap[(ui.openD||todayISO())+'|'+k]=v;ui.swap=null;save();toast('Bugünlük: '+EX[v].n);break;case 'tswapX':delete S.tswap[k];ui.swap=null;save();break;
   case 'ban':S.ban.push(v);delete S.swap[k];ui.swap=null;save();toast(EX[v].n+' bir daha önerilmeyecek');break;
   case 'fg':ui.fg=v;break;case 'pw':ui.pw=+v;break;
@@ -986,7 +992,67 @@ const TABS=[['today','Bugün'],['plan','Plan'],['prog','İlerleme'],['foto','Vü
 function updNav(){const n=document.getElementById('nav');if(route==='wiz'&&!S.profile){n.innerHTML='';return}
  n.innerHTML=TABS.map(([r,l])=>`<a href="#" data-r="${r}" class="${route===r?'on2':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[r]}</svg>${l}${r==='set'&&S.queue.length?' •':''}</a>`).join('')}
 document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('[data-r]');if(!a)return;e.preventDefault();stopScan();route=a.dataset.r;ui.reset=false;ui.open=null;ui.alt=null;render();window.scrollTo(0,0)});
-function render(){if(S.profile){weeklyReview();blockAdjust()}for(const k in CH)delete CH[k];app.innerHTML=(V[route]||V.today)();updNav();initCharts()}
+/* ---------- Koça sor (çevrimdışı koç asistanı) ---------- */
+const NRM=s=>String(s||'').toLocaleLowerCase('tr').replace(/[çğıöşü]/g,c=>({ç:'c',ğ:'g',ı:'i',ö:'o',ş:'s',ü:'u'}[c])).replace(/[^a-z0-9+% ]/g,' ').replace(/\s+/g,' ').trim();
+const REG={diz:['diz'],bel:['bel','sirt alt','kuyruk'],omuz:['omuz'],dirsek:['dirsek'],bilek:['bilek'],boyun:['boyun','ense'],kalca:['kalca'],ayak:['ayak bilegi','ayak','topuk']};
+const EXAL={bench:['bench','gogus press'],squat:['squat','skuat'],deadlift:['deadlift','olu kaldirma'],rdl:['rdl','romanian'],row:['row','kurek'],pulldown:['pulldown','lat'],pullup:['barfiks','pull up','pullup'],ohp:['omuz press','shoulder press','overhead'],legpress:['leg press'],lateral:['yan acis','lateral'],hipthrust:['hip thrust'],bss:['bulgarian'],curl:['curl','biceps'],pushdown:['triceps','pushdown'],legcurl:['leg curl'],legext:['leg extension'],calf:['calf','baldir'],plank:['plank']};
+function kFindEx(q){const t=iso(),pl=planFor(t).filter(p=>p.startsWith('Ağırlık')).flatMap(p=>session(p.split(' · ')[1],t).map(x=>x.id)),cands=[];
+ for(const id of LIB){const n=NRM(EX[id].n);if(n.length>3&&q.includes(n))cands.push([id,10+n.length])}
+ for(const id in EXAL)if(EXAL[id].some(a=>q.includes(a))){const pat=EX[id].pat,inPlan=pl.find(x=>EX[x].pat===pat);cands.push([inPlan&&!pl.includes(id)&&!q.includes(NRM(EX[id].n))?inPlan:id,8])}
+ cands.sort((a,b)=>b[1]-a[1]+(pl.includes(b[0])?1:0)-(pl.includes(a[0])?1:0));return cands.length?cands[0][0]:null}
+const kList=(t,d)=>{const pl=planFor(d);if(!pl.length)return `${t}: dinlenme günü.${S.wiz.act.Yürüyüş&&S.wiz.act.Yürüyüş.on?' Yürüyüş: 8–10 bin adım.':''}`;let h=`<b>${t}:</b> ${pl.map(esc).join(' + ')}`;pl.filter(p=>p.startsWith('Ağırlık')).forEach(p=>{h+='<br>'+session(p.split(' · ')[1],d).map(it=>`• ${EX[it.id].n} — ${exLoad(it)}`).join('<br>')});return h};
+const KB=[
+ {k:['bugun','ne yapiyorum','bugunku plan','bugun ne','antrenmanim'],f:q=>kList('Bugün',iso())+'<br><span class="xs">Harekete dokunup video için Bugün ekranına bak; makine doluysa 🔄.</span>',act:[['Bugün ekranı','go','today']]},
+ {k:['yarin'],f:q=>kList('Yarın',addDays(iso(),1))},
+ {k:['haftalik plan','hafta plani','haftanin plani','gelecek hafta','tum hafta'],f:q=>{const ti=dIdx(),off=/gelecek/.test(q)?7:0;return D.map((_,i)=>{const d=addDays(iso(),i-ti+off),pl=planFor(d);return `<b>${DL[i]}</b>: ${pl.length?pl.map(esc).join(' + '):'dinlenme'}`}).join('<br>')},act:[['Plan sekmesi','go','plan']]},
+ {k:['kac kilo','agirlik','kilo kaldir','kac kg','hangi agirlik','kac tekrar','kac set'],ex:1,f:(q,id)=>{if(!id)return null;const e=EX[id],p=S.prog[id],h=(S.hist[id]||[]).slice(-1)[0],tg=target(id);const it=(()=>{for(const pp of planFor(iso()))if(pp.startsWith('Ağırlık')){const f=session(pp.split(' · ')[1],iso()).find(x=>x.id===id);if(f)return f}return null})();
+   let a=`<b>${e.n}</b>: `;a+=it?`bugün ${exLoad(it)}`:tg!=null?`sıradaki ağırlık ${fmt(tg)} ${kgLab(id)}`:'henüz verisi yok; ilk seferde son seti 2 tekrar yedekte bitireceğin ağırlığı seç.';
+   if(h&&h.e1)a+=`<br>Son kayıt: ${fmt(h.kg)} kg × ${h.r} tekrar${h.eff?' ('+h.eff+')':''}, tahmini güç ${h.tag==='↑'?'artıyor ↑':h.tag==='↓'?'düşmüş ↓':'sabit →'}.`;
+   a+=`<br><span class="xs">Ağırlık; son performansın (kilo × tekrar + Kolay/Tam/Zor) ve bu haftanın hedef zorluğuna (${phase().ph.n}: ${PHASES[Math.min(phase().wib,4)].rir} tekrar yedekte) göre seçilir. Performans düşmedikçe ağırlık inmez.</span>`;return a}},
+ {k:['neden degis','niye degis','neden degisti','neden farkli','hareket degisti','degistirdin'],ex:1,f:(q,id)=>{const P=phase();let a='';if(id){const p=S.prog[id]||{},sw=Object.entries(S.swap).find(([k,v])=>v===id),ts=Object.keys(S.tswap).find(k=>S.tswap[k]===id&&k.startsWith(iso()));a=`<b>${EX[id].n}</b>: `+(ts?'bugünlük 🔄 ile seçildi.':sw?'planına kalıcı olarak girdi (ya sen seçtin ya da önceki hareket 3–4 seans ilerlemediği için değiştirildi).':'planın bloğa göre seçtiği hareket.')+'<br>'}
+   return a+`Hareketler şu durumlarda değişir: 1) <b>4 haftalık blok</b> bitince yardımcılar, 2 blokta bir ana hareketler yenilenir (şu an blok ${P.block+1}, hafta ${Math.min(P.wib,3)+1}). 2) Bir hareket <b>ana harekette 4, yardımcıda 3 seans</b> ilerlemezse. 3) Sen 🔄 veya "Değiştir" dersen. Çok sık değiştirmek ilerlemeyi ölçmeyi zorlaştırır; o yüzden ana hareketler sabit tutulur.`}},
+ {k:['agri','agriyor','aci','sakat','incin','sizli','zonk','burk','tutul'],f:q=>{const r=Object.keys(REG).find(x=>REG[x].some(a=>q.includes(a)));const red=/(keskin|sislik|sisti|uyusma|karinca|morar|cit|kilit|bacaga vur|gece)/.test(q);
+   if(/kas agrisi|kaslarim agri|tutulma|dunden agri/.test(q)&&!r)return 'Antrenman sonrası 1–3 gün süren yaygın kas ağrısı normaldir. Hafif–orta ağrıda antrenman yapılabilir; ısınma ağrıyı azaltır. O kas çok ağrıyorsa bugün o kasta 1 set az yap ya da "Kolay" ağırlıkla çalış. Ağrı eklemdeyse ya da keskinse farklıdır, söyle.';
+   let a=red?'⚠️ Anlattığın belirtiler (keskin ağrı, şişlik, uyuşma, kilitlenme gibi) bir uzmanın bakması gereken türden. O bölgeyi çalıştırma ve bir doktor/fizyoterapiste görün.<br>':'';
+   if(r){const lab=INJ.find(x=>x[0]===r)[1],t=iso(),its=planFor(t).filter(p=>p.startsWith('Ağırlık')).flatMap(p=>session(p.split(' · ')[1],t)),risk=its.filter(x=>injHit(x.id).includes(r)||EX[x.id].st&&EX[x.id].st.includes(r));
+    a+=`<b>${lab}</b> için: ağrısız açıklıkta çalış, ağrı 10 üzerinden 3'ü geçiyorsa o hareketi bırak. ${risk.length?`Bugün bu bölgeyi zorlayabilecek hareketler: ${risk.map(x=>EX[x.id].n).join(', ')}. 🔄 ile muadiline geç.`:'Bugünkü planında bu bölgeyi doğrudan zorlayan hareket görünmüyor.'} Ağrı sürüyorsa bölgeyi ağrı listene ekle; plan bu bölgeyi zorlamayan hareketleri seçer.${S.wiz.inj.includes(r)?' (Zaten listende.)':''}`;
+    return {a,act:S.wiz.inj.includes(r)?[]:[[`Ağrı listeme ekle: ${lab}`,'injAdd',r]]}}
+   return a+'Hangi bölge? (diz, bel, omuz, dirsek, bilek, boyun, kalça, ayak bileği) Bölgeyi yazarsan bugünkü planına göre öneri veririm.'}},
+ {k:['nasil gidiyorum','ilerleme','gelisim','gucum','guclen','ilerliyor muyum'],f:q=>{const rows=[];for(const id in S.hist){const h=S.hist[id].filter(x=>x.e1);if(h.length>=2&&EX[id]){const ch=(h[h.length-1].e1-h[0].e1)/h[0].e1*100;rows.push([id,ch])}}if(!rows.length)return 'Henüz yeterli kayıt yok. 2–3 seans kaydettikten sonra her hareketin gidişatını gösteririm.';rows.sort((a,b)=>b[1]-a[1]);
+   return `Kayıtlarına göre tahmini güç değişimi (ilk kayıttan bugüne):<br>${rows.slice(0,8).map(([id,c])=>`• ${EX[id].n}: ${c>=0?'+':''}${fmt(Math.round(c*10)/10)}%`).join('<br>')}${S.review?'<br><br><b>Son haftalık değerlendirme:</b><br>'+S.review.lines.map(esc).join('<br>'):''}`},act:[['İlerleme sekmesi','go','prog']]},
+ {k:['toparlanma','deload','blok','hangi hafta','faz','zirve'],f:q=>{const P=phase();return `Şu an: <b>blok ${P.block+1}, ${P.ph.n}</b>${P.ph.dl?'':` (hafta ${P.wib+1}/4)`} · hedef zorluk RPE ${P.ph.rpe}. Blok türü: ${BTN[btype(P.block)]}.<br>Bloklar 4 hafta: Giriş (3 tekrar yedekte) → Birikim (2) → Birikim+ (2) → Zirve (1). Toparlanma haftası sabit değil: haftalık değerlendirmede hareketlerin yarısı düşmüş ve çoğu "Zor" gelmişse gelir. Araştırmalar planlı toparlanma haftasının kas gelişimine ek katkı göstermediğini, gücü biraz azaltabildiğini buldu; o yüzden ihtiyaca göre.`}},
+ {k:['kilo hiz','kilo veriyor','kilom','tarti','zayifl','kilo kayb','ne kadar kilo'],f:q=>{const s=bodySeries('kg');if(s.length<2)return 'Kilo verisi az. Tartı (Mi → Apple Health) ya da İlerleme → Ölçüm ekle ile en az 2 hafta veri olunca hızını hesaplarım. Hedef: haftada vücut ağırlığının %0,5–1\'i.';const l=s[s.length-1],o=s.filter(x=>daysBetween(x[0],l[0])>=6).pop();if(!o)return `Son kilo: ${fmt(l[1])} kg. Hız için 1 haftalık veri daha lazım.`;const wk=daysBetween(o[0],l[0])/7,r=(o[1]-l[1])/o[1]/wk*100;
+   return `Son kilo ${fmt(l[1])} kg. Haftalık değişim: ${r>=0?'−':'+'}%${fmt(Math.abs(Math.round(r*10)/10))}.<br>${r>1?'Hızlı: kas korumak için %0,5–1 bandı önerilir; biraz daha yemeyi düşün.':r>=.4?'Hedef bantta 👍 (kas koruyarak yağ kaybı için haftada %0,5–1).':r>=0?'Yavaş. Yağ yakımı hedefinde haftada %0,5–1 hedeflenir; adım sayısı ve öğün düzenini gözden geçir.':'Kilo artıyor. Hedefin yağ yakımıysa beslenmeyi gözden geçir; kas hedefindeysen ayda ~0,5 kg artış normal.'}`},act:[['İlerleme','go','prog']]},
+ {k:['hacim','set sayisi','haftada kac set','kac set yap'],f:q=>{const {T}=volTargets(),g=weekVolume(),m=Object.keys(MUS).filter(x=>T[x]);return `Bu haftaki kas hacmi (yapılan/hedef set):<br>${m.map(x=>`• ${MUS[x]}: ${Math.round(g[x]||0)}/${Math.round(T[x]*(PHV[phase().wib]||1))}`).join('<br>')}<br><span class="xs">Kas gelişimi için çoğu kişide haftada 10–20 set, seansta kas başına en fazla ~10 set etkili. Performansına göre her hafta ±2 set ayarlanır.</span>`},act:[['Plan → hacim kartı','go','plan']]},
+ {k:['kacirdim','yapamadim','gidemedim','gitmedim','kacan','atladim'],f:q=>'Kaçırırsan: Bugün ekranında "Dün planın vardı, yaptın mı?" çıkar. "Hayır" dersen plan spora başlamadan düzenlenir: ağırlık olmayan uygun bir güne alınır, yoksa aynı bölgenin bir sonraki gününde ana hareketlere +1 set eklenir (bacak hareketi üst vücut gününe eklenmez). Hastalık/sakatlıkta telafi yok, sonraki antrenman hafifler. Kaçan her şey üst üste yığılmaz; haftalık toplam önemli.',act:[['Bugün','go','today']]},
+ {k:['farkli antrenman','baska antrenman','plan disi','baska hareket yaptim','farkli yaptim'],f:q=>'Bugün ekranının altında "Plandan farklı bir şey mi yaptın?" → Serbest → yaptığın hareketleri seç, set/tekrar/kilo gir. Kaydedince yapılmayan ana hareketler aynı bölgenin bir sonraki gününe +1 set olarak eklenir, bugün yoğun çalışan kaslar ertesi gün 1 set az alır.'},
+ {k:['makine dolu','dolu','mesgul','muadil','alternatif','yerine ne'],f:q=>'Hareketin yanındaki 🔄\'ye bas: her dokunuşta aynı kasları çalıştıran sıradaki hareket gelir (sadece bugünlük). Set/tekrar ona göre ayarlanır; ağırlık geçmişinden ya da benzer hareketten tahmin edilir. Kalıcı istiyorsan "Değiştir" → Kalıcı.'},
+ {k:['tek kol','dambil basi','nasil yaz','agirligi nasil','iki dambil','toplam agirlik'],f:q=>'Tek kolla sırayla yapılanlarda (tek kol row, konsantrasyon curl, kablo yan açış) tek kolun ağırlığı; dambıllı hareketlerde tek dambılın ağırlığı; barbell, makine ve kabloda toplam ağırlık. Tek taraflı hareketlerde tekrar her taraf için. Kayıt ekranında her kutunun yanında yazar.'},
+ {k:['kolay','tam','zor','rir','rpe','yedekte','son set'],f:q=>'"Son set nasıldı?" sadece ana hareketlerde: <b>Kolay</b> = 4+ tekrar daha yapabilirdim, <b>Tam</b> = 1–3, <b>Zor</b> = 0–1. İnsanlar kalan tekrarı ortalama ~1 tekrar hatayla tahmin edebiliyor, en iyi 12 tekrarın altındaki setlerde. Bu cevap ağırlık seçimini doğrudan etkiler.'},
+ {k:['dinlen','ara ver','setler arasi'],f:q=>'Ana hareketlerde 2–3 dk, yardımcılarda en az 90 sn. Araştırmalar 60 sn\'den uzun dinlenmenin kas gelişimine küçük bir avantaj sağladığını, 90 sn\'den sonra belirgin fark olmadığını gösteriyor.'},
+ {k:['tukenme','failure','son tekrara kadar','sonuna kadar'],f:q=>'Her seti tükenmeye götürmek gerekmez. Kas gelişimi tükenmeye yaklaştıkça artıyor; güçte fark küçük. Ana hareketlerde 1–3 tekrar yedekte bırak (güvenli form), yardımcılarda 0–1 tekrar kalana kadar gidebilirsin.'},
+ {k:['kosu','kardiyo','kosmak','bisiklet','yuzme','basketbol'],f:q=>'Ağırlık ve koşu aynı gün: önce ağırlık, sonra koşu; mümkünse arada 6 saat. Araştırmalara göre birlikte yapmak çoğu kişide kas ve güç gelişimini anlamlı bozmuyor, ama koşu bisiklete göre daha fazla etkileyebiliyor. Planlayıcı bacak gününü zorlu sporla aynı güne/öncesine koymamaya çalışır; aynı günse bacakta 1 set az ve bitiş yürüyüşü yok.'},
+ {k:['beslen','kalori','protein','ne yemeli','diyet','karbonhidrat'],f:q=>'Beslenme takibi şimdilik yok, genel çerçeve: kas korumak/geliştirmek için yüksek protein (araştırmalarda sık önerilen günlük ~1,6–2,2 g/kg), yağ yakımında haftada vücut ağırlığının %0,5–1\'i kadar kayıp sağlayan ılımlı açık. Kişisel diyet için diyetisyene danış.'},
+ {k:['fotograf','analiz','yag orani','silüet','siluet','vucut tipi'],f:q=>'Vücut sekmesi → Fotoğraftan analiz: dar kıyafet, düz duvar, telefon bel hizasında ~2 m. Önden yeter, yandan da çekersen yağ oranı daha doğru (US Navy formülü, ±3–4 puan). Analiz telefonda yapılır, fotoğraf sunucuya gitmez. Sonuç "Şu anki vücudum" silüetine aktarılır; hedef silüet planı belirler.',act:[['Vücut sekmesi','go','foto']]},
+ {k:['isinma','sogum','esneme'],f:q=>'Isınma 8–10 dk: 5 dk hafif kardiyo + videodaki hareketler; ilk ana harekette ısınma setleri (bar×10 · %50×5 · %70×3 · %85×1). Soğuma: hedefe göre 10–15 dk eğimli yürüyüş (koşu günü yok) + 5 dk esneme.'},
+ {k:['uyku','yorgun','halsiz','enerjim yok','stres'],f:q=>'Yorgun ya da uykusuzsan: antrenmanı iptal etmek yerine "Kolay" ağırlıkla yap ya da setleri 1 azalt. Uygulama haftalık değerlendirmede performans düşüşünü ve "Zor" cevapları izler; birikirse toparlanma haftasını kendisi öne alır. Uzun süren halsizlikte doktora görün.'},
+ {k:['guncelle','surum','yeni ozellik','eski surum'],f:q=>'Ayarlar → Uygulama sürümü → "Güncellemeyi yükle". Ya da uygulamayı tamamen kapatıp aç; üstte "Yeni sürüm hazır" bandı çıkar.',act:[['Ayarlar','go','set']]},
+ {k:['set ekle','fazla set','dort set','4 set','ekstra set'],f:q=>'Kayıtta her hareketin altında "+ Set ekle / − Son seti sil" var (en fazla 10 set). Gün sonu kaydında önce "✎ Farklı yaptım"a bas.'},
+ {k:['hedef','ne zaman','kac ayda','yol harita'],f:q=>{const r=roadmap();return r?`Yol haritana göre ~${r.months} ay: ${r.ph.map(x=>x.n+' ('+x.w+' hf)').join(' → ')}. Her 2 haftada fotoğraf analizi + tartı ile kontrol edilir.`:'Yol haritası için önce kilonu ve hedef silüetini gir (Vücut sekmesi).'},act:[['Vücut','go','foto']]}
+];
+const KQ=['Bugün ne yapıyorum?','Nasıl gidiyorum?','Dizim ağrıyor','Makine dolu','Kilo hızım iyi mi?','Bu hafta toparlanma mı?','Squat kaç kilo?','Kaç set yapmalıyım?'];
+function kAnswer(raw){const q=NRM(raw);if(!q)return null;let best=null,bs=0;
+ const qq=' '+q+' ';KB.forEach(it=>{let sc=0;it.k.forEach(k=>{if(k.length<=4?qq.includes(' '+k+' '):q.includes(k))sc+=k.length>5?2:1});if(sc>bs){bs=sc;best=it}});
+ const id=kFindEx(q);if(!best&&id)best=KB.find(x=>x.ex);
+ if(!best)return {a:'Bunu henüz bilmiyorum. Plan, ağırlık, ağrı, kaçan antrenman, hacim, toparlanma, kilo hızı, vücut analizi gibi konularda yardımcı olabilirim. Sağlıkla ilgili ciddi bir durumda bir uzmana danış.',act:[]};
+ let r=best.f(q,id);if(r==null)r='Hangi hareket? Adını yaz (ör. "bench kaç kilo?").';if(typeof r==='string')r={a:r,act:best.act||[]};else r.act=(r.act||[]).concat(best.act||[]);return r}
+V.koc=()=>{const ch2=S.chat||[];return `<div class="row sp"><button class="ghost" data-a="go" data-v="today" style="padding:0">← Bugün</button>${ch2.length?'<button class="ghost sm" data-a="kClr" style="padding:0">Temizle</button>':''}</div><h1 style="margin-top:4px">💬 Koça sor</h1><div class="mut">Planın, kayıtların ve konuştuğumuz bilimsel kurallara göre cevap verir. İnternet ve ücret gerektirmez.</div>
+ <div id="kmsgs">${ch2.map(m=>`<div style="display:flex;justify-content:flex-end;margin-top:12px"><div style="background:var(--ac);color:#fff;padding:10px 14px;border-radius:16px 16px 4px 16px;max-width:85%">${esc(m.q)}</div></div><div class="card" style="margin-top:8px;border-radius:16px 16px 16px 4px"><div class="sm" style="line-height:1.5">${m.a}</div>${(m.act||[]).map(x=>`<button class="sm" style="margin:8px 8px 0 0" data-a="${x[1]}" data-v="${esc(x[2])}">${esc(x[0])}</button>`).join('')}</div>`).join('')}</div>
+ <div style="margin-top:14px">${KQ.map(x=>`<span class="ch" data-a="kAsk" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div>
+ <div class="row" style="gap:8px;margin-top:6px;position:sticky;bottom:calc(76px + env(safe-area-inset-bottom));background:var(--bg);padding:8px 0"><input id="kq" class="f1" placeholder="Sorunu yaz…" enterkeyhint="send"><button class="pr" data-a="kSend">Sor</button></div>`};
+function kAsk(text){if(!text||!text.trim())return;const r=kAnswer(text);S.chat=(S.chat||[]).concat([{q:text.trim(),a:r.a,act:r.act}]).slice(-20);save();render();setTimeout(()=>{window.scrollTo(0,document.body.scrollHeight);const i=document.getElementById('kq');if(i)i.focus()},30)}
+
+function render(){if(S.profile){weeklyReview();blockAdjust()}for(const k in CH)delete CH[k];app.innerHTML=(V[route]||V.today)()+(S.profile&&route!=='koc'&&route!=='wiz'&&!ui.open?'<button class="fab" data-a="go" data-v="koc" aria-label="Koça sor">💬</button>':'');updNav();initCharts()}
 
 /* ---------- başlat ---------- */
 const qs=new URLSearchParams(location.search);
