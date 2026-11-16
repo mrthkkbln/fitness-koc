@@ -61,7 +61,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.18';
+const APP_V='1.19';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -277,7 +277,7 @@ let S;
 try{S=JSON.parse(localStorage.getItem('fk')||'null')}catch(e){S=null}
 if(!S)S={v:1,profile:null,wiz:defWiz(),plan:null,prog:{},logs:[],checkins:[],body:[],health:[],photos:[],cfg:{url:'',token:''},queue:[],draft:{},msg:null};
 ['logs','checkins','body','health','photos','queue'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});
-S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote','sex'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};S.scans=S.scans||[];S.swap=S.swap||{};S.rev=S.rev||{};S.mrg=S.mrg||{};S.light=S.light||{};S.ovr=S.ovr||{};delete S.makeup;syncActs();
+S.draft=S.draft||{};S.prog=S.prog||{};S.cfg=S.cfg||{url:'',token:''};S.wiz=S.wiz||defWiz();{const w=S.wiz,d=defWiz();if(!Array.isArray(w.inj)){w.injNote=w.inj||'';w.inj=[]}['eq','prio','sure','injNote','sex'].forEach(k=>{if(w[k]==null)w[k]=d[k]})}S.swap=S.swap||{};S.ban=S.ban||[];S.body.forEach((b,i)=>{if(!b.id)b.id='b'+i+'_'+Date.now();if(!b.ts)b.ts=Date.parse(b.date+'T12:00:00')+i});S.free=S.free||{};S.scans=S.scans||[];S.swap=S.swap||{};S.tswap=S.tswap||{};S.fat=S.fat||{};S.rev=S.rev||{};S.mrg=S.mrg||{};S.light=S.light||{};S.ovr=S.ovr||{};delete S.makeup;syncActs();
 let route=S.profile?'today':'wiz',wst=0,err='',ui={};
 const save=()=>{try{localStorage.setItem('fk',JSON.stringify(S))}catch(e){toast('Telefon hafızası dolu: Ayarlar > dışa aktar')}};
 migSwap();save();
@@ -384,18 +384,18 @@ function blockAdjust(){const bt=btype();for(const k in S.prog){const p=S.prog[k]
 function cardioDay(d){return planFor(d).some(a=>a!=='Yürüyüş'&&(HARD.includes(a)||DIST.includes(a)))}
 function runTip(d){const pl=planFor(d),c=pl.filter(a=>a!=='Yürüyüş'&&(HARD.includes(a)||DIST.includes(a)));return c.length&&pl.some(x=>x.startsWith('Ağırlık'))?`🏃 Aynı gün ${c.join(', ').toLowerCase()} var: önce ağırlık, sonra ${c[0].toLowerCase()}; mümkünse arada 6 saat. Bitişteki eğimli yürüyüş bugün yok.`:''}
 function finisher(d){if(d&&cardioDay(d))return [0,0];return {'Yağ yakımı':[15,20],'Yağ yakımı + kas':[10,15],'Kondisyon':[10,15]}[S.wiz.goal]||[5,10]}
-function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[],rv=date&&S.rev[date],mg=date&&S.mrg[date]&&S.mrg[date].to===label?S.mrg[date].add:null;let bump=0;const sameHard=!!date&&planFor(date).some(a=>HARD.includes(a));
+function session(label,date){const P=phase(date),w=S.wiz,used=[],items=[],rv=date&&S.rev[date],mg=date&&S.mrg[date]&&S.mrg[date].to===label?S.mrg[date].add:null;let bump=0;const fatM=date&&S.fat[date]?S.fat[date].m:[],sameHard=!!date&&planFor(date).some(a=>HARD.includes(a));
  const prioPats=w.prio.flatMap(p=>PRIO[p]||[]);let slots;
  if(label==='Serbest')slots=(S.free[date||iso()]||[]).map(id=>[EX[id].pat,0,['squat','hinge','lunge','hpush','vpush','hpull','vpull'].includes(EX[id].pat)?'c':'i',id,'Serbest|'+id]);
  else if(label==='Core')slots=TPLS.Core.map((s,i)=>[s[0],s[1],s[2],undefined,'Core|core|'+i]);
  else if(TPLS[label])slots=volSlots(label,P);else slots=[];
- if(mg&&TPLS[mg]&&TPLS[label]&&label!=='Core'){const have=slots.map(s=>s[0]),add=TPLS[mg].filter(s=>s[2]==='c'&&!have.includes(s[0])).slice(0,2);
+ if(mg&&TPLS[mg]&&TPLS[label]&&label!=='Core'){const have=slots.map(s=>s[0]),mgP=S.mrg[date].pats,add=TPLS[mg].filter(s=>s[2]==='c'&&!have.includes(s[0])&&(!mgP||mgP.includes(s[0]))).slice(0,2);
   if(add.length){const at=slots.filter(s=>s[2]==='c').length;slots.splice(at,0,...add.map((s,j)=>[s[0],s[1],'c',undefined,'mk|'+mg+'|'+j,1]))}else bump=1}
- slots.forEach((s,i)=>{const key=s[4];let id=s[3]||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)||used.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
+ slots.forEach((s,i)=>{const key=s[4];let id=s[3]||(date&&S.tswap[date+'|'+key])||S.swap[key];if(id&&(!EX[id]||S.ban.includes(id)||used.includes(id)))id=null;if(!id)id=pick(s[0],s[1],s[2],used);if(!id)return;used.push(id);
   const role=s[2],[lo,hi,u]=scheme(id,role,P.block);let sets,pr;
   if(s[6]!=null){sets=s[6];pr=!!s[7];if(w.goal==='Kondisyon')sets=Math.min(sets,2)}
   else{sets=role==='c'?3:(w.goal==='Kondisyon'?2:3);if(w.exp==='Yeni')sets--;if(w.exp==='3+ yıl'&&role==='c')sets++;sets+=P.ph.d||0;pr=prioPats.includes(s[0]);if(pr)sets++;if(pr&&P.ph.p)sets++}
-  if(bump&&role==='c')sets++;if((rv&&(rv.type==='light'||(rv.legL&&LEGP.includes(s[0]))))||(sameHard&&LEGP.includes(s[0])))sets--;
+  if(bump&&role==='c')sets++;if((rv&&(rv.type==='light'||(rv.legL&&LEGP.includes(s[0]))))||(sameHard&&LEGP.includes(s[0]))||Object.keys(CON[s[0]]||{}).some(m=>fatM.includes(m)&&CON[s[0]][m]>=1))sets--;
   sets=Math.max(2,Math.min(5,sets));if(P.ph.dl)sets=2;
   items.push({id,slot:i,key,pat:s[0],role,sets,lo,hi,u,pr,caution:injHit(id),mk:!!s[5],rest:(()=>{const bt=btype(P.block);return role==='c'?(bt===1?'2–3 dk':bt===2||w.goal==='Yağ yakımı'?'90 sn–2 dk':'2–3 dk'):(bt===1?'90 sn':bt===2||w.goal==='Yağ yakımı'?'45–60 sn':'60–90 sn')})()})});
  const lim=(num(w.sure)||60)+(dIdx(date?new Date(date+'T12:00:00'):new Date())>4?15:0);
@@ -424,9 +424,12 @@ function revise(label,from,reason){const sick=reason==='Hastalık'||reason==='Sa
  else{const cur=labOf(pw);S.mrg[d]={add:label,to:cur};S.rev[d]={type:'merge',missed:label,cur,from,reason,legL:(lower(label)||lower(cur))&&hz}}
  return S.rev[d]}
 function undoRev(d){const r=S.rev[d];if(!r)return;if(r.type==='move'){if(r.prev)S.ovr[d]=r.prev;else delete S.ovr[d]}delete S.mrg[d];delete S.light[d];delete S.rev[d]}
+const PATN={squat:'squat',hinge:'kalça menteşe (deadlift/RDL)',lunge:'lunge',hpush:'yatay itiş (bench)',vpush:'omuz press',hpull:'row',vpull:'pulldown/barfiks'};
+function reviseAlt(label,from,pats){let d=null;for(let k=1;k<=3;k++){const x=addDays(from,k);if(planFor(x).some(isW)&&!S.rev[x]){d=x;break}}if(!d)return null;const cur=labOf(planFor(d).find(isW));S.mrg[d]={add:label,to:cur,pats};S.rev[d]={type:'merge',missed:label,cur,from,reason:'Farklı antrenman',pats};return S.rev[d]}
 function revCard(d,r,t){const dn=d===t?'Bugün':DL[dIdx(new Date(d+'T12:00:00'))],fr=daysBetween(r.from,t)===1?'Dün':r.from===t?'Bugün':DL[dIdx(new Date(r.from+'T12:00:00'))];
  const tx=r.type==='move'?`${dn}: ${esc(r.missed)} yapılacak (o gün ağırlık yoktu, kaçanı buraya aldım).`:r.type==='merge'?(r.cur===r.missed?`${dn}: ${esc(r.cur)} zaten aynı antrenman; ana hareketlere +1 set eklendi.`:`${dn}: ${esc(r.cur)} + ${esc(r.missed)} antrenmanının ana hareketleri. Süre aşılmasın diye yardımcı hareketler kısaltıldı.`):`${dn}: ${esc(r.cur)} hafifletildi (set −1, ağırlık −%10). Ağrı ya da hastalık sürüyorsa zorlama.`;
- return `<div class="card" style="border:2px solid var(--ac)"><h3>🔁 Plan güncellendi</h3><div class="sm">${fr} ${esc(r.missed)} kaçtı → ${tx}${r.legL?' Yakında zorlu spor var: bacak hacmi azaltıldı.':''}</div><div class="row" style="margin-top:10px"><button class="f1 sm" data-a="undoRev" data-v="${d}">Değişikliği geri al</button>${r.from<t?`<button class="f1 sm" data-a="didY" data-v="${d}">Aslında yapmıştım</button>`:''}</div></div>`}
+ const alt=r.reason==='Farklı antrenman',tx2=alt?`${dn}: ${esc(r.cur)} + bugün yapamadığın ana hareketler (${(r.pats||[]).map(x=>PATN[x]||x).join(', ')}).`:tx;
+ return `<div class="card" style="border:2px solid var(--ac)"><h3>🔁 Plan güncellendi</h3><div class="sm">${fr} ${esc(r.missed)} yerine ${alt?'farklı antrenman yaptın':'kaçtı'} → ${tx2}${r.legL?' Yakında zorlu spor var: bacak hacmi azaltıldı.':''}</div><div class="row" style="margin-top:10px"><button class="f1 sm" data-a="undoRev" data-v="${d}">Değişikliği geri al</button>${r.from<t&&!alt?`<button class="f1 sm" data-a="didY" data-v="${d}">Aslında yapmıştım</button>`:''}</div></div>`}
 function tReps(it){const p=S.prog[it.id];let r=p&&p.r!=null?p.r:it.lo;return Math.max(it.lo,Math.min(it.hi,r))}
 function progress(items,sets,rpe){const out=[],dl=phase().ph.dl;
  for(const it of items){const ex=it.id,e=EX[ex],step=e.t?5:1;const ss=(sets[ex]||[]).filter(s=>s&&num(s.r)!=null&&(e.bw||num(s.kg)!=null));if(!ss.length)continue;
@@ -434,7 +437,7 @@ function progress(items,sets,rpe){const out=[],dl=phase().ph.dl;
   if(dl){out.push({ex,kg:p.w,nw:p.w,nr:tr,tag:'aynı'});continue}
   const hit=ss.length>=it.sets&&ss.every(s=>num(s.r)>=tr),miss=ss.some(s=>num(s.r)<tr-2);
   let nw=kg,nr=tr,tag='aynı';
-  if(hit&&(rpe==null||rpe<=9)){p.fail=0;if(tr+step<=it.hi||kg==null){nr=Math.min(it.hi,tr+step);tag=nr>tr?'tekrar':'aynı'}else{nw=rnd(kg+e.inc,e.r);nr=it.lo;tag='artır'}}
+  if(hit&&(rpe==null||rpe<=9)){p.fail=0;const mn=Math.min(...ss.map(s=>num(s.r))),want=e.t?tr+step:Math.max(tr+step,mn+1);if(kg==null||(want<=it.hi&&!(mn>=it.hi&&!e.t))){nr=Math.min(it.hi,want);tag=nr>tr?'tekrar':'aynı'}else{nw=rnd(kg+e.inc,e.r);nr=it.lo;tag='artır'}}
   else if(miss){p.fail=(p.fail||0)+1;if(p.fail>=2&&kg!=null){nw=rnd(kg*.9,e.r);nr=it.lo;p.fail=0;tag='düşür'}}
   else p.fail=0;
   if(kg!=null)p.w=nw;p.r=nr;p.est=false;S.prog[ex]=p;out.push({ex,kg,nw,nr,u:it.u,sets:it.sets,tag})}
@@ -606,6 +609,7 @@ V.today=()=>{
  const st=setupSteps();if(st.some(x=>!x[1]))h+=`<div class="card"><h2>Başlarken</h2><div class="mut">Bunları bir kez yap, sonra her gün sadece antrenmanını kaydedeceksin.</div>${st.map(([n,ok,r,hint],i)=>`<div class="step ${ok?'done':''}"><div class="dot">${ok?'✓':i+1}</div><div class="f1"><div style="font-weight:600">${n}</div><div class="xs">${hint}</div></div>${ok?'':`<button class="sm" data-a="go" data-v="${r}">Yap</button>`}</div>`).join('')}</div>`;
  const ym=yMiss();
  if(ym)h+=`<div class="card" id="ycard" style="border:2px solid var(--wr)${ui.needY?';box-shadow:0 0 0 5px var(--wrbg)':''}"><h2>Dün ${esc(labOf(ym.p))} planın vardı. Yaptın mı?</h2><div class="mut">Kaydetmeyi unutmuş olabilirsin. Yapmadıysan bugünün planını spora başlamadan düzenlerim.</div><div class="row" style="margin-top:10px"><button class="f1 pr" data-a="quickD" data-k="${ym.d}" data-v="${esc(ym.p)}">Evet, yaptım</button><button class="f1" data-a="yNo">Hayır</button></div>${ui.yNo?`<div style="margin-top:12px"><div class="sm" style="font-weight:600;margin-bottom:6px">Neden? (isteğe bağlı)</div>${WREASON.map(r=>ch(r,false,'missR',ym.d+'|'+ym.p,r)).join('')}${ch('Geç',false,'missR',ym.d+'|'+ym.p,'Belirtilmedi')}</div>`:''}</div>`;
+ if(S.fat[t])h+=`<div class="card"><div class="sm">💪 Dün ${S.fat[t].m.map(m=>MUS[m].toLowerCase()).join(', ')} yoğun çalıştı: bugün bu kasların hareketlerinde 1 set az.</div></div>`;
  Object.keys(S.rev).filter(d=>d>=t&&daysBetween(S.rev[d].from,t)<=3).sort().forEach(d=>{h+=revCard(d,S.rev[d],t)});
  const ms=missedDays();
  if(ms.length)h+=`<div class="card"><h3>Kayıt bekleyenler</h3>${ms.map(({d,p})=>`<div class="row" style="padding:8px 0;border-top:1px solid var(--bd)"><div class="f1 sm"><b>${daysBetween(d,t)===1?'Dün':DL[dIdx(new Date(d+'T12:00:00'))]}</b> · ${esc(p.replace('Ağırlık · ','🏋️ '))}</div><button class="sm pr" data-a="${isW(p)?'quickD':'actD'}" data-k="${d}" data-v="${esc(p)}">Yaptım</button><button class="sm" data-a="missQ" data-k="${d}" data-v="${esc(p)}">Yapmadım</button></div>`).join('')}</div>`;
@@ -669,7 +673,7 @@ function quickSave(label,planned){const t=ui.openD||todayISO(),key=t+'|'+label,d
  S.draft[key]=dr;ui.quick=null;return saveWorkout(label,planned)}
 function adh(items,dr){let tot=0,ok=0;items.forEach(it=>{tot+=it.sets;ok+=(dr.sets[it.id]||[]).filter(s=>s&&num(s.r)!=null).length});return 'Uyum %'+(tot?Math.round(ok/tot*100):0)}
 function swapBox(it,label){const c=LIB.filter(id=>EX[id].pat===it.pat&&id!==it.id&&eqOk(id)&&!S.ban.includes(id));
- return `<div style="background:var(--bg);border-radius:10px;padding:8px 10px;margin:6px 0">${c.length?c.map(id=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span class="f1">${EX[id].n}${injHit(id).length?' <span class="xs" style="color:var(--wr)">⚠</span>':''} <a href="${yt(EX[id].v)}" target="_blank" rel="noopener">▶</a></span><button class="sm" data-a="swap" data-k="${esc(it.key)}" data-v="${id}">Seç</button></div>`).join(''):'<div class="xs">Ekipmanına uygun başka seçenek yok.</div>'}<button class="sm" style="margin-top:6px;color:var(--er)" data-a="ban" data-k="${esc(it.key)}" data-v="${it.id}">Bu hareketi bir daha önerme</button></div>`}
+ const tk=(ui.openD||todayISO())+'|'+it.key;return `<div style="background:var(--bg);border-radius:10px;padding:8px 10px;margin:6px 0"><div class="xs" style="padding-bottom:4px">Makine doluysa <b>Bugün</b>: sadece bugünlük değişir, sonra plan eski haline döner. <b>Kalıcı</b>: bundan sonra hep bu hareket.</div>${S.tswap[tk]?`<button class="sm" style="margin-bottom:6px" data-a="tswapX" data-k="${esc(tk)}">↩ Plandaki harekete dön</button>`:''}${c.length?c.map(id=>`<div class="row sp sm" style="padding:6px 0;border-top:.5px solid var(--bd)"><span class="f1">${EX[id].n}${injHit(id).length?' <span class="xs" style="color:var(--wr)">⚠</span>':''} <a href="${yt(EX[id].v)}" target="_blank" rel="noopener">▶</a></span><span class="row" style="gap:6px;flex:none"><button class="sm pr" data-a="tswap" data-k="${esc(it.key)}" data-v="${id}">Bugün</button><button class="sm" data-a="swap" data-k="${esc(it.key)}" data-v="${id}">Kalıcı</button></span></div>`).join(''):'<div class="xs">Ekipmanına uygun başka seçenek yok.</div>'}<button class="sm" style="margin-top:6px;color:var(--er)" data-a="ban" data-k="${esc(it.key)}" data-v="${it.id}">Bu hareketi bir daha önerme</button></div>`}
 function freePicker(t){const g=ui.fg||'Göğüs',sel=S.free[t]||[];
  return `<div style="margin-top:8px"><div class="xs">Yaptığın hareketleri ekle:</div>${Object.keys(GROUPS).map(k=>ch(k,g===k,'fg','',k)).join('')}<div>${LIB.filter(id=>GROUPS[g].includes(EX[id].pat)&&eqOk(id)).map(id=>ch((sel.includes(id)?'✓ ':'+ ')+EX[id].n,sel.includes(id),'free','',id)).join('')}</div></div>`}
 function altCard(pw){const labs=[...new Set([...(S.plan||[]).flat().filter(x=>x.startsWith('Ağırlık')).map(x=>x.split(' · ')[1]),...UL,...FB])];
@@ -793,11 +797,16 @@ function saveWorkout(label,planned){const t=ui.openD||todayISO(),key=t+'|'+label
  ui.werr='';const rpe=num(dr.rpe),res=progress(items,dr.sets,rpe),act=planned||('Ağırlık · '+label),note=planned&&planned!=='Ağırlık · '+label?'Yerine: '+label:'';
  S.logs.push({date:t,label,sets:dr.sets,dur:num(dr.dur),rpe});
  S.checkins.push({date:t,act,status:'yapıldı',dur:num(dr.dur),rpe,note});
+ let altLines=[];if(planned&&planned.startsWith('Ağırlık · ')&&planned!=='Ağırlık · '+label){const pl=labOf(planned),doneIt=items.filter(it=>(dr.sets[it.id]||[]).some(x=>x&&num(x.r)!=null)),dp=doneIt.map(it=>it.pat),mus={};
+  doneIt.forEach(it=>{const n=(dr.sets[it.id]||[]).filter(x=>x&&num(x.r)!=null).length,c=CON[it.pat]||{};for(const m in c)mus[m]=(mus[m]||0)+c[m]*n});
+  const miss=[...new Set(session(pl,t).filter(it=>it.role==='c'&&!dp.includes(it.pat)&&!Object.keys(CON[it.pat]).some(m=>CON[it.pat][m]>=1&&(mus[m]||0)>=4)).map(it=>it.pat))];
+  if(miss.length){const r=reviseAlt(pl,t,miss);altLines.push(r?`Planındaki ${miss.map(x=>PATN[x]||x).join(', ')} yapılmadı → ${DL[dIdx(new Date(Object.keys(S.rev).find(k=>S.rev[k]===r)+'T12:00:00'))]} antrenmanına eklendi.`:`Planındaki ${miss.map(x=>PATN[x]||x).join(', ')} yapılmadı; önümüzdeki 3 günde uygun ağırlık günü yok, plana devam.`)}
+  const tm=addDays(t,1),tw=planFor(tm).find(isW),tp=tw?session(labOf(tw),tm).flatMap(it=>Object.keys(CON[it.pat]||{}).filter(m=>CON[it.pat][m]>=1)):[],hv=Object.keys(mus).filter(m=>mus[m]>=5&&tp.includes(m));if(hv.length){S.fat[tm]={m:hv,from:t};altLines.push(`Bugün ${hv.map(m=>MUS[m].toLowerCase()).join(', ')} yoğun çalıştı → yarın bu kaslara 1 set az.`)}}
  q('Sets',rows);q('Checkins',[[t,act,'yapıldı',num(dr.dur),'','',rpe,(note?note+' · ':'')+adh(items,dr)]]);
  const lines=res.map(o=>`${o.tag==='artır'||o.tag==='tekrar'?'↑':o.tag==='düşür'?'↓':'→'} ${EX[o.ex].n}: gelecek sefer ${o.sets}×${o.nr} ${o.u==='sn'?'sn':'tekrar'}${o.nw!=null?' · '+fmt(o.nw)+' kg':''}`);
  lines.unshift(phase().ph.dl?'Toparlanma haftası kaydedildi. Ağırlıklar bu hafta sabit.':res.some(o=>o.tag==='artır'||o.tag==='tekrar')?'Güzel iş. Hedefi tutturduğun hareketlerde bir sonraki hedef:':'Kaydedildi. Hedef tekrarları tutturana kadar aynı ağırlıkla devam:');
  if(res.some(o=>o.tag==='düşür'))lines.push('İki kez üst üste hedefin altında kalınca %10 hafifletiyoruz; tekniği sağlamlaştırıp tekrar çıkacağız.');
- S.msg={date:todayISO(),lines};delete S.draft[key];ui.alt=null;ui.open=null;ui.openD=null;save();render();window.scrollTo(0,0)}
+ if(altLines.length)lines.push('🔁 Plan güncellendi:',...altLines);S.msg={date:todayISO(),lines};delete S.draft[key];ui.alt=null;ui.open=null;ui.openD=null;save();render();window.scrollTo(0,0)}
 function saveAct(a){const t=todayISO(),dr=S.draft[t+'|'+a]||{};
  S.checkins.push({date:t,act:a,status:'yapıldı',dur:num(dr.dur),dist:num(dr.dist),int:dr.int||''});
  q('Checkins',[[t,a,'yapıldı',num(dr.dur),num(dr.dist),dr.int||'','','']]);delete S.draft[t+'|'+a];
@@ -899,6 +908,7 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'actO':ui.act=ui.act===v?null:v;break;case 'tog':ui[v]=!ui[v];break;
   case 'swapO':ui.swap=ui.swap===v?null:v;break;
   case 'swap':S.swap[k]=v;ui.swap=null;save();toast('Değiştirildi: '+EX[v].n);break;
+  case 'tswap':S.tswap[(ui.openD||todayISO())+'|'+k]=v;ui.swap=null;save();toast('Bugünlük: '+EX[v].n);break;case 'tswapX':delete S.tswap[k];ui.swap=null;save();break;
   case 'ban':S.ban.push(v);delete S.swap[k];ui.swap=null;save();toast(EX[v].n+' bir daha önerilmeyecek');break;
   case 'fg':ui.fg=v;break;case 'pw':ui.pw=+v;break;
   case 'free':{const t2=todayISO();S.free[t2]=S.free[t2]||[];tg(S.free[t2],v);save();break}
