@@ -61,7 +61,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.20';
+const APP_V='1.21';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -748,6 +748,7 @@ V.foto=()=>{const lp=lastPhotoDate();
  return h};
 
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
+<div class="card"><div class="row sp"><div><h2 style="margin:0">Uygulama sürümü</h2><div class="mut">v${APP_V}</div></div><button data-a="forceUpd">Güncellemeyi yükle</button></div></div>
 <div class="card"><h2>Akşam hatırlatıcısı</h2><div class="sm">Kaydetmeyi unuttuğun günler kaçmasın: iPhone Kestirmeler → Otomasyon → + → Günün Saati 22:00, Her gün → Hemen çalıştır → eylem "URL'leri Aç" → <b style="word-break:break-all">${esc(location.origin+location.pathname)}?checkin=1</b></div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
@@ -910,6 +911,7 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'swap':S.swap[k]=v;ui.swap=null;save();toast('Değiştirildi: '+EX[v].n);break;
   case 'addSet':case 'rmSet':{const i=k.lastIndexOf('|'),dk=k.slice(0,i),id=k.slice(i+1),dr=S.draft[dk]||(S.draft[dk]={sets:{},dur:'',rpe:'8'}),arr=dr.sets[id]||(dr.sets[id]=[]);const it=session(dk.split('|').slice(1).join('|'),dk.split('|')[0]).find(x=>x.id===id);while(it&&arr.length<it.sets)arr.push({r:'',kg:''});
    if(a==='addSet'){const l=arr[arr.length-1]||{};if(arr.length<10)arr.push({r:l.r||'',kg:l.kg||''})}else if(arr.length>1)arr.pop();save();break}
+  case 'forceUpd':location.replace(location.pathname+'?u='+Date.now());return;
   case 'tswap':S.tswap[(ui.openD||todayISO())+'|'+k]=v;ui.swap=null;save();toast('Bugünlük: '+EX[v].n);break;case 'tswapX':delete S.tswap[k];ui.swap=null;save();break;
   case 'ban':S.ban.push(v);delete S.swap[k];ui.swap=null;save();toast(EX[v].n+' bir daha önerilmeyecek');break;
   case 'fg':ui.fg=v;break;case 'pw':ui.pw=+v;break;
