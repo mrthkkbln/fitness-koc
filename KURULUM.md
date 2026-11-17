@@ -64,15 +64,16 @@ Test: kısayolu çalıştır → Sheets'te **Health** sekmesine satır düşmeli
 - Android: Health Connect web'den okunamıyor; ileride küçük bir Android uygulaması ya da Strava/Garmin/Oura API'si ile eklenecek.
 - Arkadaşlar aynı tabloya "Kullanıcı ekle" ile eklenir (aşağıda); e-postayla giriş yapılan gerçek hesap sistemi yok.
 
-## Arkadaş ekleme (aynı tabloda ikinci kullanıcı)
+## Arkadaş ekleme
 1. (Bir kez) Apps Script'te `Code.gs`'i yeni haliyle değiştir → Kaydet → **Dağıt → Dağıtımları yönet → ✏️ → Sürüm: Yeni sürüm → Dağıt**. Adres değişmez.
-2. Tabloyu yenile → **Fitness Koç → Kullanıcı ekle** → arkadaşının adını yaz. Tabloda `Ad · Checkins`, `Ad · Sets`… sekmeleri açılır, ekranda ona özel kare kod çıkar.
-3. Arkadaşın uygulamayı Safari'de açar → Paylaş → **Ana Ekrana Ekle** → ikondan açıp kurulum sorularını cevaplar.
-4. Arkadaşın **Ayarlar → Kodu kameraya okut** ile kare kodu okutur (yanında değilse kodun ekran görüntüsünü sadece ona gönder) → **Bağlantıyı test et**.
+2. Arkadaşına uygulama linkini gönder. Safari'de açar → Paylaş → **Ana Ekrana Ekle** → kurulum sorularını cevaplar.
+3. Arkadaşın kurulumun sonunda (ya da Ayarlar'da) **☁️ Verilerimi yedekle** → adını yazar → **İstek gönder**. Kod okutmak yok.
+4. Senin uygulamanda Bugün ekranında "🔔 1 kişi onay bekliyor" çıkar → **Ayarlar → 👥 Kullanıcılar → Onayla**.
+5. Arkadaşının uygulaması bir sonraki açılışta kendiliğinden bağlanır; o güne kadar girdiği kayıtlar tablondaki `Ad · Checkins`, `Ad · Sets`… sekmelerine akar.
 - Her kullanıcının verisi ayrı sekmelerde ve ayrı anahtarla durur; birbirinin verisini göremez. Fotoğrafları Drive'da "Fitness Koç Fotoğraflar / Ad" klasörüne gider (vücut analizi fotoğrafları telefondan çıkmaz).
 - Arkadaşının verisi senin Google Drive'ında durur; bunu bilerek kabul etmesi gerekir.
-- **Fitness Koç → Kullanıcılar:** kodu tekrar göster ya da kullanıcıyı kaldır (kaldırınca telefonu bağlantıyı kaybeder, sekmeleri silinmez).
-- Apple Health kısayolu arkadaş için de aynı; sadece `token` alanına kendi kodu yazılır (uygulamada Ayarlar'da görünür).
+- Kullanıcıyı Ayarlar → 👥 Kullanıcılar → **Kaldır** ile çıkarabilirsin (sekmeleri silinmez). Sheets menüsündeki "Kullanıcı ekle / Kullanıcılar" (kare kodla) yöntemi de çalışır.
+- Uygulamanın kodunda senin Apps Script adresin görünür; onay vermeden kimse veri okuyamaz/yazamaz, en fazla sana istek düşer.
 
 ## Program nasıl kişiselleşiyor
 - **Kurulum sırası:** haftada kaç gün → hangi günler → saatler → aktiviteler → gün bazında neler yapılabilir → aynı gün olmayanlar → başlangıç bilgileri (cinsiyet dahil) → vücut fotoğrafı (isteğe bağlı) → şu anki ve hedef silüet → ortam → ağrı/sakatlık → öncelikli bölgeler → seans süresi → ölçüler → mevcut ağırlıklar.

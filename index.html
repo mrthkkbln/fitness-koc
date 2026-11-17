@@ -62,7 +62,7 @@ details summary{list-style:revert}
 <nav id="nav"></nav>
 <script>
 'use strict';
-const APP_V='1.25';
+const APP_V='1.26';
 /* ---------- sabitler ---------- */
 const D=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],DL=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
 const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -341,6 +341,26 @@ async function readJson(r){const t=await r.text();try{return JSON.parse(t)}catch
  if(/accounts\.google|ServiceLogin|signin/i.test(t))throw new Error('Google giriş sayfası döndü: Dağıt > Dağıtımları yönet > ✏️ > Erişimi olanlar: "Herkes" seç, Yeni sürüm olarak dağıt.');
  if(/Script function not found|doGet|doPost/i.test(t))throw new Error('Apps Script kodu eksik veya eski. Code.gs\'yi yapıştır, kaydet, Dağıt > Dağıtımları yönet > ✏️ > Yeni sürüm.');
  throw new Error('Sunucu JSON yerine sayfa döndürdü (HTTP '+r.status+'). URL\'nin /exec ile bittiğinden ve erişimin "Herkes" olduğundan emin ol.')}}
+/* ---------- arkadaş katılımı: istek gönder, sahip uygulamadan onaylar ---------- */
+const SRV=''; // uygulama sahibinin Apps Script /exec adresi
+const rid16=()=>Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b=>b.toString(16).padStart(2,'0')).join('');
+let joinBusy=0,joinAt=0;
+async function joinTick(force){const J=S.join;if(!SRV||!J||J.st==='ok'||J.st==='red'||joinBusy||!navigator.onLine)return;if(!force&&Date.now()-joinAt<30000)return;joinBusy=1;joinAt=Date.now();
+ try{if(!J.sent){const r=await fetch(SRV,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'join',name:J.name,rid:J.rid,secret:J.secret})});const j=await readJson(r);if(j.ok){J.sent=1;save()}}
+  if(J.sent){const r=await fetch(SRV+'?action=joinStatus&rid='+J.rid+'&secret='+J.secret);const j=await readJson(r);if(j.ok&&j.status==='ok'&&j.token){S.cfg.url=SRV;S.cfg.token=j.token;J.st='ok';save();toast('Bağlantı kuruldu ✓ Kayıtların yedekleniyor');flush();render()}else if(j.ok&&j.status==='red'){J.st='red';save();render()}}}
+ catch(e){}finally{joinBusy=0}}
+function joinCard(){if(S.cfg.token&&(!S.join||S.join.st==='ok'))return '';const J=S.join;
+ if(!SRV)return '';
+ if(J&&J.st==='red')return `<div class="card"><h2>☁️ Yedekleme</h2><div class="mut">İsteğin onaylanmadı. Uygulamayı bağlantısız kullanmaya devam edebilirsin.</div><button class="sm" style="margin-top:8px" data-a="joinReset">Yeniden iste</button></div>`;
+ if(J)return `<div class="card"><h2>☁️ Yedekleme</h2><div class="mut">İsteğin ${J.sent?'gönderildi':'gönderilmeyi bekliyor (internet/sunucu hazır olunca otomatik gider)'}. Onaylanınca bağlantı kendiliğinden kurulur; bu arada girdiğin kayıtlar telefonda birikir ve sonra aktarılır.</div><button class="sm" style="margin-top:8px" data-a="joinCheck">Durumu kontrol et</button></div>`;
+ return `<div class="card"><h2>☁️ Verilerimi yedekle</h2><div class="mut">Kayıtların telefon değişse de kaybolmasın, Apple Health verilerin gelsin. Adını yaz, istek gönder; onaylanınca kendiliğinden bağlanır. Kod okutmak yok.</div><label class="l">Adın</label><input data-jn value="${esc(ui.jn||S.wiz.name||'')}" placeholder="Ali"><button class="pr full" style="margin-top:10px" data-a="joinSend">İstek gönder</button></div>`}
+let usersCache=null;
+async function loadUsers(){try{const r=await fetch(S.cfg.url+'?action=users&token='+encodeURIComponent(S.cfg.token));const j=await readJson(r);if(j.ok){usersCache=j;S.pendingN=j.pending.length;save();render()}}catch(e){}}
+function usersCard(){if(!S.owner)return '';const U=usersCache;
+ return `<div class="card"><div class="row sp"><h2 style="margin:0">👥 Kullanıcılar</h2><button class="sm" data-a="usersLoad">Yenile</button></div>${!U?'<div class="mut" style="margin-top:6px">Yükleniyor…</div>':`
+ ${U.pending.length?`<div class="sm" style="font-weight:600;margin-top:10px">Onay bekleyen</div>${U.pending.map(x=>`<div class="row sp" style="padding:8px 0;border-top:1px solid var(--bd)"><span class="f1"><b>${esc(x.name)}</b> <span class="xs">${esc(x.date)}</span></span><button class="sm pr" data-a="uAppr" data-v="${esc(x.rid)}">Onayla</button><button class="sm" data-a="uRej" data-v="${esc(x.rid)}">Reddet</button></div>`).join('')}`:''}
+ <div class="sm" style="font-weight:600;margin-top:10px">Bağlı kullanıcılar</div>${U.users.length?U.users.map(x=>`<div class="row sp" style="padding:8px 0;border-top:1px solid var(--bd)"><span class="f1">${esc(x.name)} <span class="xs">${esc(x.date)}</span></span><button class="sm" style="color:var(--er)" data-a="uDel" data-v="${esc(x.id)}">${ui.uDel===x.id?'Emin misin?':'Kaldır'}</button></div>`).join(''):'<div class="mut">Henüz yok.</div>'}
+ <div class="xs" style="margin-top:8px">Arkadaşların verisi tablonda kendi adlı sekmelerinde durur; birbirlerinin verisini göremezler. Davet için uygulama linkini gönder; ilk açılışta "Verilerimi yedekle"den istek gönderirler.</div>`}</div>`}
 async function api(body){const r=await fetch(S.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:S.cfg.token})});return readJson(r)}
 function q(sheet,rows){if(rows.length){S.queue.push({action:'append',sheet,rows});save();flush()}}
 function stateJson(){return JSON.stringify({profile:S.profile,wiz:S.wiz,plan:S.plan,prog:S.prog,shape:S.shape,rev:S.rev,mrg:S.mrg,light:S.light,ovr:S.ovr})}
@@ -349,7 +369,7 @@ async function flush(){if(syncing||urlProblem()||!navigator.onLine)return;syncin
   await api({action:'state',json:stateJson()})}catch(e){console.warn(e)}finally{syncing=false;updNav()}}
 async function pull(){if(!S.cfg.url||!S.cfg.token)return false;
  if(urlProblem())return false;const r=await fetch(S.cfg.url+'?action=pull&token='+encodeURIComponent(S.cfg.token));const j=await readJson(r);if(!j.ok)throw new Error(j.error);
- S.health=j.health||[];S.photosRemote=j.photos||[];
+ S.health=j.health||[];S.photosRemote=j.photos||[];S.owner=!!j.owner;S.pendingN=j.pending||0;
  if(!S.profile&&j.state){try{const st=JSON.parse(j.state);Object.assign(S,st);syncActs();route='today'}catch(e){}}
  save();return true}
 
@@ -633,6 +653,7 @@ V.today=()=>{
  const ym=yMiss();
  if(ym)h+=`<div class="card" id="ycard" style="border:2px solid var(--wr)${ui.needY?';box-shadow:0 0 0 5px var(--wrbg)':''}"><h2>Dün ${esc(labOf(ym.p))} planın vardı. Yaptın mı?</h2><div class="mut">Kaydetmeyi unutmuş olabilirsin. Yapmadıysan bugünün planını spora başlamadan düzenlerim.</div><div class="row" style="margin-top:10px"><button class="f1 pr" data-a="quickD" data-k="${ym.d}" data-v="${esc(ym.p)}">Evet, yaptım</button><button class="f1" data-a="yNo">Hayır</button></div>${ui.yNo?`<div style="margin-top:12px"><div class="sm" style="font-weight:600;margin-bottom:6px">Neden? (isteğe bağlı)</div>${WREASON.map(r=>ch(r,false,'missR',ym.d+'|'+ym.p,r)).join('')}${ch('Geç',false,'missR',ym.d+'|'+ym.p,'Belirtilmedi')}</div>`:''}</div>`;
  if(S.review&&S.review.wk===phase().wk&&!(S.msg&&S.msg.date===t&&S.msg.lines[0]==='📋 Haftalık koç değerlendirmesi'))h+=`<div class="card"><h3>📋 Bu haftanın değerlendirmesi</h3>${S.review.lines.map(l=>`<div class="sm" style="margin-top:4px">${esc(l)}</div>`).join('')}</div>`;
+ if(S.owner&&S.pendingN)h+=`<div class="card" style="border:2px solid var(--ac)"><div class="row sp"><div class="sm">🔔 <b>${S.pendingN} kişi</b> yedekleme için onay bekliyor.</div><button class="sm pr" data-a="go" data-v="set">Gör</button></div></div>`;
  if(S.fat[t])h+=`<div class="card"><div class="sm">💪 Dün ${S.fat[t].m.map(m=>MUS[m].toLowerCase()).join(', ')} yoğun çalıştı: bugün bu kasların hareketlerinde 1 set az.</div></div>`;
  Object.keys(S.rev).filter(d=>d>=t&&daysBetween(S.rev[d].from,t)<=3).sort().forEach(d=>{h+=revCard(d,S.rev[d],t)});
  const ms=missedDays();
@@ -780,7 +801,7 @@ V.foto=()=>{const lp=lastPhotoDate();
  return h};
 
 V.set=()=>`<h1>Ayarlar</h1><div class="card"><h2>Google Sheets bağlantısı</h2><button class="pr full" data-a="scan">📷 Kodu kameraya okut</button><div class="xs" style="margin-top:4px">Bilgisayarda Sheets → Fitness Koç → Telefona bağla penceresini aç, telefonu pencereye tut. Adres ve kod birlikte okunur.</div><div id="scanbox"></div><div class="row" style="margin-top:8px"><button class="f1" data-a="paste">Panodan yapıştır</button><label class="ch f1" style="text-align:center;margin:0;min-height:44px;line-height:28px">Fotoğraftan oku<input type="file" accept="image/*" class="hide" data-ocr="1"></label></div><label class="l">Apps Script web uygulaması URL</label><input data-cfg="url" value="${esc(S.cfg.url)}" placeholder="https://script.google.com/macros/s/.../exec"><label class="l">TOKEN</label><input data-cfg="token" value="${esc(S.cfg.token)}"><div class="row" style="margin-top:10px"><button class="f1" data-a="test">Bağlantıyı test et</button><button class="f1" data-a="sync">Senkronize et</button></div><div class="xs" style="margin-top:8px">Bekleyen kayıt: ${S.queue.length}</div><div class="err">${ui.serr||''}</div></div>
-<div class="card"><div class="row sp"><div><h2 style="margin:0">Uygulama sürümü</h2><div class="mut">v${APP_V}</div></div><button data-a="forceUpd">Güncellemeyi yükle</button></div></div>
+${joinCard()}${usersCard()}<div class="card"><div class="row sp"><div><h2 style="margin:0">Uygulama sürümü</h2><div class="mut">v${APP_V}</div></div><button data-a="forceUpd">Güncellemeyi yükle</button></div></div>
 <div class="card"><h2>Akşam hatırlatıcısı</h2><div class="sm">Kaydetmeyi unuttuğun günler kaçmasın: iPhone Kestirmeler → Otomasyon → + → Günün Saati 22:00, Her gün → Hemen çalıştır → eylem "URL'leri Aç" → <b style="word-break:break-all">${esc(location.origin+location.pathname)}?checkin=1</b></div></div>
 <div class="card"><h2>Profil</h2><label class="l">Adın</label><input data-pf="name" value="${esc(S.profile&&S.profile.name||'')}"></div>
 <div class="card"><h2>Veri</h2><button class="full" data-a="export">Tüm veriyi dışa aktar (JSON)</button><button class="full" style="margin-top:8px" data-a="rewiz">Kurulumu yeniden yap</button><button class="full" style="margin-top:8px;color:var(--er)" data-a="reset">${ui.reset?'Emin misin? Tekrar dokun':'Bu cihazdaki her şeyi sıfırla'}</button></div>
@@ -814,7 +835,7 @@ function wvalid(){const w=S.wiz;
  if(wst===3){const tot=X().reduce((s,a)=>s+w.act[a].n,0);if(tot>w.cnt*2)return 'Toplam seans sayısı çok yüksek (günde en fazla 2).'}
  if(wst===6&&!(num(w.age)>0&&num(w.h)>0&&num(w.kg)>0))return 'Yaş, boy ve kilo gir.';
  return ''}
-V.wiz=()=>{const N=WS.length;return `<div class="row sp xs" style="margin-bottom:8px"><span>Kurulum</span><span>Adım ${wst+1}/${N}</span></div><div class="bar" style="margin-bottom:14px"><div style="width:${Math.round((wst+1)/N*100)}%"></div></div><div class="card">${WS[wst]()}<div class="err">${err}</div><div class="row" style="margin-top:14px">${wst?'<button class="f1" data-a="wnav" data-v="-1">Geri</button>':''}${wst<N-1?'<button class="f1 pr" data-a="wnav" data-v="1">İleri</button>':'<button class="f1 pr" data-a="wfin">Planı kaydet ve başla</button>'}</div></div>`};
+V.wiz=()=>{const N=WS.length;return `<div class="row sp xs" style="margin-bottom:8px"><span>Kurulum</span><span>Adım ${wst+1}/${N}</span></div><div class="bar" style="margin-bottom:14px"><div style="width:${Math.round((wst+1)/N*100)}%"></div></div><div class="card">${WS[wst]()}<div class="err">${err}</div></div>${wst===N-1?joinCard():''}<div class="card" style="margin-top:0"><div class="row" style="margin-top:14px">${wst?'<button class="f1" data-a="wnav" data-v="-1">Geri</button>':''}${wst<N-1?'<button class="f1 pr" data-a="wnav" data-v="1">İleri</button>':'<button class="f1 pr" data-a="wfin">Planı kaydet ve başla</button>'}</div></div>`};
 
 /* ---------- işlemler ---------- */
 const tg=(arr,v)=>{const j=arr.indexOf(v);j<0?arr.push(v):arr.splice(j,1);arr.sort()};
@@ -908,7 +929,7 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'td':tg(w.td,+v);break;case 'act':w.act[v].on=w.act[v].on?0:1;break;case 'dm':tg(w.act[k].d,+v);break;case 'no':tg(w.no,v);break;
   case 'wnav':if(+v===1){err=wvalid();if(err)return render()}err='';wst=Math.max(0,wst+ +v);save();break;
   case 'wfin':return finishWiz();
-  case 'go':route=v;break;
+  case 'go':route=v;if(v==='set'&&S.owner&&!usersCache)loadUsers();break;
   case 'rewiz':route='wiz';wst=0;break;
   case 'saveW':return saveWorkout(v,k||null);
   case 'eq':w.eq=v;break;case 'inj':tg(w.inj,v);break;case 'injN':w.inj=[];break;case 'sure':w.sure=+v;break;
@@ -949,6 +970,12 @@ app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)retu
   case 'cyc':{const d=ui.openD||todayISO(),lab=k.split('|')[0],items=session(lab,d),cur=(items.find(x=>x.key===k)||{}).id;if(!cur)break;const used=items.map(x=>x.id).filter(x=>x!==cur),pat=EX[cur].pat;
    const L=LIB.filter(id=>EX[id].pat===pat&&eqOk(id)&&!S.ban.includes(id)).sort((a,b)=>injHit(a).length-injHit(b).length);let nx=null;const st=L.indexOf(cur);for(let i=1;i<=L.length;i++){const c=L[(st+i)%L.length];if(!used.includes(c)){nx=c;break}}if(!nx||nx===cur){toast('Muadil hareket yok');break}
    S.tswap[d+'|'+k]=nx;const src=[cur,...L].find(id=>S.prog[id]&&S.prog[id].w!=null&&!S.prog[id].est&&!EX[id].bw)||cur;seedEst(src,nx,items.find(x=>x.key===k));save();toast('🔄 '+EX[nx].n);break}
+  case 'joinSend':{const n=(ui.jn||'').trim();if(!n){toast('Adını yaz');break}S.join={name:n.slice(0,20),rid:rid16(),secret:rid16(),st:'',sent:0};save();joinTick(1);toast('İstek hazır');break}
+  case 'joinCheck':joinTick(1);toast('Kontrol ediliyor…');break;
+  case 'joinReset':S.join=null;save();break;
+  case 'usersLoad':usersCache=null;loadUsers();break;
+  case 'uAppr':case 'uRej':api({action:a==='uAppr'?'approve':'reject',rid:v}).then(j=>{toast(j.ok?(a==='uAppr'?'Onaylandı ✓':'Reddedildi'):'Hata: '+j.error);loadUsers()}).catch(()=>toast('Bağlantı hatası'));break;
+  case 'uDel':if(ui.uDel!==v){ui.uDel=v;break}ui.uDel=null;api({action:'removeUser',id:v}).then(()=>loadUsers());break;
   case 'kAsk':return kAsk(v);
   case 'kSend':{const i=document.getElementById('kq');return kAsk(i&&i.value)}
   case 'kClr':S.chat=[];save();break;
@@ -981,6 +1008,7 @@ app.addEventListener('input',e=>{const el=e.target,d=el.dataset;
   const b=document.getElementById('adh');if(b)b.textContent=adh(session(label,dt),dr);save();return}
  if(d.dr){const p=d.dr.split('|'),f=p.pop(),key=p.join('|');S.draft[key]=S.draft[key]||{sets:{},dur:'',rpe:'8'};S.draft[key][f]=el.value;save();return}
  if(d.m){ui.m=ui.m||{};ui.m[d.m]=el.value;return}
+ if('jn' in d){ui.jn=el.value;return}
  if(d.sh){const sh=shapeS();sh[sh.ed][d.sh]=+el.value;if(sh[sh.ed+'P']){sh[sh.ed+'P']=null;document.querySelectorAll('[data-a=shp].on').forEach(x=>{x.classList.remove('on');x.textContent=x.textContent.replace('✓ ','')})}if(sh.ed==='now'){sh.src='manual';autoGoal()}else sh.goalSet=1;if(!S.wiz.goalLock){const dv=shDerive();S.wiz.goal=dv.goal;S.wiz.prio=dv.prio}save();const g=document.getElementById('shsvg');if(g)g.innerHTML=shSVG();const u=document.getElementById('shsum');if(u)u.innerHTML=shSum();return}
  if(d.cfg){S.cfg[d.cfg]=el.value.replace(/\s+/g,'');save();return}
  if(d.pf){S.profile=S.profile||{};S.profile[d.pf]=el.value;save();return}});
@@ -991,7 +1019,7 @@ const IC={today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-
 const TABS=[['today','Bugün'],['plan','Plan'],['prog','İlerleme'],['foto','Vücut'],['set','Ayarlar']];
 function updNav(){const n=document.getElementById('nav');if(route==='wiz'&&!S.profile){n.innerHTML='';return}
  n.innerHTML=TABS.map(([r,l])=>`<a href="#" data-r="${r}" class="${route===r?'on2':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[r]}</svg>${l}${r==='set'&&S.queue.length?' •':''}</a>`).join('')}
-document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('[data-r]');if(!a)return;e.preventDefault();stopScan();route=a.dataset.r;ui.reset=false;ui.open=null;ui.alt=null;render();window.scrollTo(0,0)});
+document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('[data-r]');if(!a)return;e.preventDefault();stopScan();route=a.dataset.r;ui.reset=false;ui.open=null;ui.alt=null;if(route==='set'&&S.owner&&!usersCache)loadUsers();render();window.scrollTo(0,0)});
 /* ---------- Koça sor (çevrimdışı koç asistanı) ---------- */
 const NRM=s=>String(s||'').toLocaleLowerCase('tr').replace(/[çğıöşü]/g,c=>({ç:'c',ğ:'g',ı:'i',ö:'o',ş:'s',ü:'u'}[c])).replace(/[^a-z0-9+% ]/g,' ').replace(/\s+/g,' ').trim();
 const REG={diz:['diz'],bel:['bel','sirt alt','kuyruk'],omuz:['omuz'],dirsek:['dirsek'],bilek:['bilek'],boyun:['boyun','ense'],kalca:['kalca'],ayak:['ayak bilegi','ayak','topuk']};
@@ -1057,9 +1085,9 @@ function render(){if(S.profile){weeklyReview();blockAdjust()}for(const k in CH)d
 /* ---------- başlat ---------- */
 const qs=new URLSearchParams(location.search);
 if(S.profile){if(qs.get('checkin'))route='today';if(qs.get('tab')&&V[qs.get('tab')])route=qs.get('tab')}
-render();
-window.addEventListener('online',flush);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){flush();if(S.profile)pull().then(render).catch(()=>{})}});
+render();joinTick(1);
+window.addEventListener('online',()=>{flush();joinTick(1)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){joinTick();flush();if(S.profile)pull().then(render).catch(()=>{})}});
 flush();if(S.profile)pull().then(render).catch(()=>{});
 function checkUpdate(){fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(v=>{v=v.trim();if(v&&v!==APP_V&&!document.getElementById('upd')){const b=document.createElement('div');b.id='upd';b.style.cssText='position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));background:#0f766e;color:#fff;border-radius:14px;padding:12px 14px;z-index:99;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)';b.innerHTML='<span style="flex:1;font-weight:600">Yeni sürüm hazır ('+v+')</span><button style="min-height:40px;background:#fff;color:#0f766e;border:none">Güncelle</button>';b.querySelector('button').onclick=()=>location.replace(location.pathname+'?u='+Date.now());document.body.appendChild(b)}}).catch(()=>{})}
 checkUpdate();document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});

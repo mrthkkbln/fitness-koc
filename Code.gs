@@ -63,11 +63,7 @@ function kullaniciEkle() {
   if (!name) { ui.alert('Geçerli bir ad yaz.'); return; }
   const u = users_();
   if (Object.keys(u).some(function (k) { return u[k].name.toLowerCase() === name.toLowerCase(); })) { ui.alert('Bu adla bir kullanıcı zaten var. Kodunu görmek için "Kullanıcılar"a gir.'); return; }
-  const token = Utilities.getUuid().replace(/-/g, '');
-  u[token] = { name: name, added: today_() };
-  saveUsers_(u);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  Object.keys(SHEETS).forEach(function (s) { sheet_(ss, s, name + ' · '); });
+  const token = createUser_(name);
   qrGoster_(token, name + ' için bağlantı kodu', name + ' telefonunda uygulamayı açıp Ayarlar → Kodu kameraya okut ile bu kareyi okutsun. Kod sadece ona özel.');
 }
 
@@ -83,6 +79,21 @@ function kullanicilar() {
     '<button onclick="if(confirm(\'<?= x.n ?> kaldırılsın mı? Telefonu bağlantıyı kaybeder; sekmeleri silinmez.\'))google.script.run.withSuccessHandler(function(){google.script.host.close()}).kullaniciSil(\'<?= x.t ?>\')">Kaldır</button></li><? }) ?></ul>');
   t.list = list;
   SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(360).setHeight(320), 'Kullanıcılar');
+}
+function pend_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('PENDING') || '{}'); } catch (e) { return {}; } }
+function savePend_(p) { PropertiesService.getScriptProperties().setProperty('PENDING', JSON.stringify(p)); }
+function hash_(s) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(s))); }
+function cleanName_(n) { return String(n || '').replace(/[^\wçğıöşüÇĞİÖŞÜ ]/g, '').trim().slice(0, 20); }
+function createUser_(name) {
+  const u = users_();
+  let nm = name, i = 2;
+  while (Object.keys(u).some(function (k) { return u[k].name.toLowerCase() === nm.toLowerCase(); })) nm = name + ' ' + (i++);
+  const token = Utilities.getUuid().replace(/-/g, '');
+  u[token] = { name: nm, added: today_() };
+  saveUsers_(u);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(SHEETS).forEach(function (s) { sheet_(ss, s, nm + ' · '); });
+  return token;
 }
 function kullaniciQR(token) { const u = users_()[token]; if (u) qrGoster_(token, u.name + ' için bağlantı kodu', u.name + ' telefonunda Ayarlar → Kodu kameraya okut ile okutsun.'); }
 function kullaniciSil(token) { const u = users_(); delete u[token]; saveUsers_(u); }
@@ -169,10 +180,24 @@ function rows_(sh, limit) {
 
 function doGet(e) {
   const p = e.parameter || {};
+  if (p.action === 'joinStatus') {
+    const pd = pend_()[p.rid];
+    if (!pd || pd.h !== hash_(p.secret)) return json_({ ok: false, error: 'yok' });
+    if (pd.st === 'ok') return json_({ ok: true, status: 'ok', token: pd.token });
+    return json_({ ok: true, status: pd.st || 'bekliyor' });
+  }
   const U = p.token ? user_(p.token) : null;
   if (!U) return json_({ ok: false, error: 'token' });
-  const ss = SpreadsheetApp.getActiveSpreadsheet(), pre = U.pre;
-  if (p.action === 'ping') return json_({ ok: true, user: U.name || '' });
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), pre = U.pre, owner = !U.pre;
+  const waiting = owner ? Object.keys(pend_()).filter(function (k) { return !pend_()[k].st; }).length : 0;
+  if (p.action === 'ping') return json_({ ok: true, user: U.name || '', owner: owner, pending: waiting });
+  if (p.action === 'users') {
+    if (!owner) return json_({ ok: false, error: 'yetki' });
+    const pd = pend_(), u = users_();
+    return json_({ ok: true,
+      pending: Object.keys(pd).filter(function (k) { return !pd[k].st; }).map(function (k) { return { rid: k, name: pd[k].name, date: pd[k].date }; }),
+      users: Object.keys(u).map(function (k) { return { id: k.slice(0, 8), name: u[k].name, date: u[k].added || '' }; }) });
+  }
   if (p.action === 'pull') {
     const st = rows_(sheet_(ss, 'State', pre), 1)[0];
     return json_({
@@ -180,6 +205,7 @@ function doGet(e) {
       health: rows_(sheet_(ss, 'Health', pre), 400),
       body: rows_(sheet_(ss, 'Body', pre), 400),
       photos: rows_(sheet_(ss, 'Photos', pre), 200),
+      owner: owner, pending: waiting,
       state: st ? st.json : null
     });
   }
@@ -189,13 +215,30 @@ function doGet(e) {
 function doPost(e) {
   let b;
   try { b = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'json' }); }
-  const U = b.token ? user_(b.token) : null;
-  if (!U) return json_({ ok: false, error: 'token' });
-  const ss = SpreadsheetApp.getActiveSpreadsheet(), pre = U.pre;
   const now = new Date();
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+  if (b.action === 'join') {
+    const name = cleanName_(b.name), pd = pend_();
+    if (!name || !b.rid || !b.secret || String(b.rid).length < 16) return json_({ ok: false, error: 'eksik' });
+    if (Object.keys(pd).filter(function (k) { return !pd[k].st; }).length >= 20) return json_({ ok: false, error: 'dolu' });
+    if (!pd[b.rid]) pd[b.rid] = { name: name, h: hash_(b.secret), date: today_() };
+    savePend_(pd);
+    return json_({ ok: true, status: 'bekliyor' });
+  }
+  const U = b.token ? user_(b.token) : null;
+  if (!U) return json_({ ok: false, error: 'token' });
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), pre = U.pre;
+  if (b.action === 'approve' || b.action === 'reject' || b.action === 'removeUser') {
+    if (U.pre) return json_({ ok: false, error: 'yetki' });
+    if (b.action === 'removeUser') { const u = users_(); Object.keys(u).forEach(function (k) { if (k.slice(0, 8) === b.id) delete u[k]; }); saveUsers_(u); return json_({ ok: true }); }
+    const pd = pend_(), r = pd[b.rid];
+    if (!r) return json_({ ok: false, error: 'yok' });
+    if (b.action === 'approve') { r.token = createUser_(r.name); r.st = 'ok'; } else r.st = 'red';
+    savePend_(pd);
+    return json_({ ok: true });
+  }
     if (b.action === 'append') {
       if (!SHEETS[b.sheet]) return json_({ ok: false, error: 'sheet' });
       const sh = sheet_(ss, b.sheet, pre);
