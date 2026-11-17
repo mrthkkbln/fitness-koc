@@ -62,7 +62,7 @@ Test: kısayolu çalıştır → Sheets'te **Health** sekmesine satır düşmeli
 ## 7. Bilinen sınırlar (v1)
 - Saatin üstünde ayrı bir uygulama yok (bunun için watchOS uygulaması gerekir); Watch verisi Apple Health üzerinden gelir.
 - Android: Health Connect web'den okunamıyor; ileride küçük bir Android uygulaması ya da Strava/Garmin/Oura API'si ile eklenecek.
-- Her kullanıcı kendi Sheets kopyasını kurar (çok kullanıcılı sunucu sonraki aşama).
+- Arkadaşlar aynı tabloya "Kullanıcı ekle" ile eklenir (aşağıda); e-postayla giriş yapılan gerçek hesap sistemi yok.
 
 ## Arkadaş ekleme (aynı tabloda ikinci kullanıcı)
 1. (Bir kez) Apps Script'te `Code.gs`'i yeni haliyle değiştir → Kaydet → **Dağıt → Dağıtımları yönet → ✏️ → Sürüm: Yeni sürüm → Dağıt**. Adres değişmez.
